@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Application layer: use cases and ports. No EF Core, ever. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChefLan.Domain\ChefLan.Domain.csproj" />
+    <ProjectReference Include="..\ChefLan.Commons\ChefLan.Commons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

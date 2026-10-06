@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Adapter layer. Implements the ports declared in ChefLan.Logic:
+    repositories over ChefLan.DB's DbContext, plus technical services (email, storage,
+    signed video links).
+
+    Use-case services do NOT live here - they are application logic and stay in
+    ChefLan.Logic. See CLAUDE.md.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChefLan.Domain\ChefLan.Domain.csproj" />
+    <ProjectReference Include="..\ChefLan.Commons\ChefLan.Commons.csproj" />
+    <ProjectReference Include="..\ChefLan.Logic\ChefLan.Logic.csproj" />
+    <ProjectReference Include="..\ChefLan.DB\ChefLan.DB.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_size = 2
+
+[*.{csproj,props,targets}]
+indent_size = 2
+
+[*.cs]
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:silent
+dotnet_style_namespace_match_folder = true:warning
+
+# EF Core generates these; do not hold them to hand-written style rules.
+[**/Migrations/**/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+csharp_style_namespace_declarations = block_scoped:silent
+dotnet_style_namespace_match_folder = false:silent

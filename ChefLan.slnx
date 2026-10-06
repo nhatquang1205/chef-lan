@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ChefLan.Commons/ChefLan.Commons.csproj" />
+    <Project Path="src/ChefLan.Courses.API/ChefLan.Courses.API.csproj" />
+    <Project Path="src/ChefLan.DB/ChefLan.DB.csproj" />
+    <Project Path="src/ChefLan.Domain/ChefLan.Domain.csproj" />
+    <Project Path="src/ChefLan.Infrastructure/ChefLan.Infrastructure.csproj" />
+    <Project Path="src/ChefLan.Logic/ChefLan.Logic.csproj" />
+  </Folder>
+</Solution>
