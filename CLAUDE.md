@@ -63,6 +63,26 @@ logs a warning and creates no Admin. After adding a `UserSecretsId` to a csproj,
 Package versions live in `Directory.Packages.props` (Central Package Management). Add
 packages with no `Version` attribute in the csproj.
 
+### Configuration precedence
+
+`appsettings.json` -> `appsettings.{Environment}.json` -> **`appsettings.Local.json`** ->
+user-secrets -> environment variables -> command line. Later wins.
+
+`appsettings.Local.json` is gitignored and loaded by an explicit `JsonConfigurationSource`
+inserted in `Program.cs` after the last `appsettings*.json` source.
+`appsettings.Local.example.json` is the committed template — copy it.
+
+**Never set `ASPNETCORE_ENVIRONMENT=Local` to pick that file up.** It loads, but
+`IsDevelopment()` becomes false, which silently disables OpenAPI/Scalar, skips the seeder,
+turns off `EnableSensitiveDataLogging`, and swaps `LoggingEmailSender` for the
+unimplemented `SmtpEmailSender`. Keep the environment `Development` and use the file.
+
+On a server, use **environment variables**, with `__` in place of `:`
+(`Video__Bunny__ApiKey`). They outrank every JSON file, so a stale `appsettings.Local.json`
+in a deploy artifact cannot override them. Do not write secrets into a committed
+`appsettings*.json`, and never bake them into a Docker image at build time — image layers
+are readable by anyone who can pull the image.
+
 ## Architecture
 
 Clean Architecture, six projects, dependencies strictly inward:
@@ -243,11 +263,27 @@ collision via `GenerateUnique`.
 - **Search is accent-sensitive `ILIKE`**, so typing `pho` does not match `Phở` — and
   Vietnamese users routinely type without accents. Postgres has no Vietnamese dictionary;
   the cheap fix is searching the already-unaccented `slug` column, or `unaccent` + GIN.
-- **Video links are handed out as stored.** An unlisted YouTube/Vimeo link is obscurity, not
-  access control — once a paying customer sees it, they can paste it into a Facebook group.
-  `IVideoLinkResolver` (`Logic/Courses/Video/`) is the single seam where signed short-TTL
-  CDN URLs or domain-restricted embeds go. Never return `Lesson.VideoUrl` straight from the
-  column in a response.
+- **Video delivery is Bunny Stream, and it is only active when configured.** With
+  `Video:Bunny` set, `BunnyVideoLinkResolver` mints a short-lived signed embed URL per
+  request; without it, DI falls back to `PassthroughVideoLinkResolver`, which hands back
+  the stored column — fine locally, **never safe in production**, because an unsigned URL
+  is a permanent shareable link. Always go through `IVideoLinkResolver`; never return
+  `Lesson.VideoUrl` straight from the column in a response.
+
+  Bunny's embed token is `SHA256_HEX(TokenSecurityKey + videoId + expiresUnixSeconds)`,
+  lowercase hex. It is **time**-bound, not viewer-bound — the formula has no customer
+  field — so keep `TokenLifetimeSeconds` short and set a referer allowlist in the Bunny
+  dashboard. Two distinct Bunny secrets exist and are easy to confuse:
+  `TokenSecurityKey` signs playback, `ApiKey` is the `AccessKey` header for REST calls.
+  Neither may reach the browser.
+
+  A lesson marked `VideoProvider.Bunny` with no `VideoExternalId` resolves to `null`
+  (fails closed) rather than falling back to `VideoUrl`, which would leak an unsigned link.
+
+- **Uploads go browser -> Bunny directly, never through this API.** Create the video via
+  `POST https://video.bunnycdn.com/library/{libraryId}/videos` server-side, then hand the
+  browser a TUS signature `SHA256(libraryId + apiKey + expiry + videoId)`. Proxying a
+  multi-GB upload through ASP.NET is the wrong shape. (Not built yet.)
 - **Cross-scheme token rejection is wired but untested**, because step 1 has no protected
   endpoints. Test it when step 2 adds them.
 - No rate limiting yet. Do not ship login without `AddRateLimiter` on both

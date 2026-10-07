@@ -11,7 +11,7 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
     {
         builder.ToTable("lessons", ChefLanSchemas.Courses, t =>
         {
-            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4)");
+            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4, 5)");
             t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
             t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
             t.HasCheckConstraint(
@@ -30,7 +30,7 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(l => l.VideoProvider)
             .HasConversion<int>()
             .HasDefaultValue(VideoProvider.YouTube)
-            .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook");
+            .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
 
         builder.Property(l => l.VideoUrl).HasMaxLength(1000);
 

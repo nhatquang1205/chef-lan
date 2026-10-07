@@ -481,3 +481,8 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 artifacts/
+
+# Local developer config overrides — may contain real secrets.
+# appsettings.Local.example.json is the committed template.
+appsettings.Local.json
+**/appsettings.Local.json

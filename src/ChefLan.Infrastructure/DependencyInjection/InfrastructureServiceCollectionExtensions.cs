@@ -67,7 +67,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
-        services.Configure<VideoDeliveryOptions>(configuration.GetSection(VideoDeliveryOptions.SectionName));
+        services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
 
         // Development logs instead of sending. Production MUST configure SMTP — a silently
         // dropped invite is indistinguishable from a broken invite flow.
@@ -82,8 +82,18 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IFileStorage, LocalFileStorage>();
 
-        // Swap for SignedCdnVideoLinkResolver when link sharing becomes a problem. See the
-        // doc comment on that class.
-        services.AddSingleton<IVideoLinkResolver, PassthroughVideoLinkResolver>();
+        // Signed Bunny embeds as soon as Video:Bunny is configured; otherwise hand back the
+        // stored URL so local development works with no Bunny account. The fallback is NOT
+        // safe for production — an unsigned URL is a permanent, shareable link.
+        var bunny = configuration.GetSection(BunnyStreamOptions.SectionName).Get<BunnyStreamOptions>();
+
+        if (bunny?.IsConfigured == true)
+        {
+            services.AddSingleton<IVideoLinkResolver, BunnyVideoLinkResolver>();
+        }
+        else
+        {
+            services.AddSingleton<IVideoLinkResolver, PassthroughVideoLinkResolver>();
+        }
     }
 }

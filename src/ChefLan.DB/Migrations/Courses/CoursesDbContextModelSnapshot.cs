@@ -544,7 +544,7 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("integer")
                         .HasDefaultValue(1)
                         .HasColumnName("video_provider")
-                        .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook");
+                        .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
 
                     b.Property<string>("VideoUrl")
                         .HasMaxLength(1000)
@@ -571,7 +571,7 @@ namespace ChefLan.DB.Migrations.Courses
 
                             t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
 
-                            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4)");
+                            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4, 5)");
                         });
                 });
 
