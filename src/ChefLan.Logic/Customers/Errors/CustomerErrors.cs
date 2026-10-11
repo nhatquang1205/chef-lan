@@ -10,6 +10,9 @@ public static class CustomerErrors
     public static readonly Error InvalidCredentials =
         Error.Unauthorized("customer.invalid_credentials", "Email or password is incorrect.");
 
+    public static readonly Error InvalidRefreshToken =
+        Error.Unauthorized("customer.invalid_refresh_token", "The refresh token is invalid or expired.");
+
     public static readonly Error NotActivated =
         Error.Forbidden("customer.not_activated", "This customer has no password set yet. Send an invite first.");
 

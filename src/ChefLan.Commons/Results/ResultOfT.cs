@@ -16,4 +16,6 @@ public sealed class Result<TValue> : Result
     internal static Result<TValue> FromError(Error error) => new(default, false, error);
 
     public static implicit operator Result<TValue>(TValue value) => FromValue(value);
+
+    public static implicit operator Result<TValue>(Error error) => FromError(error);
 }

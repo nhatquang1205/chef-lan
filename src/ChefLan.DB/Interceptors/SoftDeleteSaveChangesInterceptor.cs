@@ -10,7 +10,7 @@ namespace ChefLan.DB.Interceptors;
 /// Turns a Remove() on an ISoftDeletable into an update. Rows are never physically
 /// deleted, so unique indexes on these tables must be partial on is_deleted = false.
 /// </summary>
-public sealed class SoftDeleteSaveChangesInterceptor(IClock clock, ICurrentStaffContext staff)
+public sealed class SoftDeleteSaveChangesInterceptor(IClock clock, ICurrentUser currentUser)
     : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
@@ -38,7 +38,7 @@ public sealed class SoftDeleteSaveChangesInterceptor(IClock clock, ICurrentStaff
         }
 
         var now = clock.UtcNow;
-        var actorId = staff.UserId;
+        long? actorId = currentUser.TryGetStaffId(out var staffId) ? staffId : null;
 
         foreach (var entry in context.ChangeTracker.Entries<ISoftDeletable>())
         {

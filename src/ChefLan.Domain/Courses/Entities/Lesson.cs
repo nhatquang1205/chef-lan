@@ -1,5 +1,4 @@
 using ChefLan.Domain.Common;
-using ChefLan.Domain.Enums;
 
 namespace ChefLan.Domain.Courses.Entities;
 
@@ -20,26 +19,33 @@ public class Lesson : AuditableSoftDeletableEntity, IHasRowVersion
     /// </summary>
     public int SortOrder { get; set; }
 
-    public VideoProvider VideoProvider { get; set; } = VideoProvider.YouTube;
-
-    public string? VideoUrl { get; set; }
-
-    /// <summary>Provider id, so the frontend can build an embed without parsing URLs.</summary>
-    public string? VideoExternalId { get; set; }
-
-    public int DurationSeconds { get; set; }
-
-    /// <summary>Playable without an enrollment.</summary>
-    public bool IsFreePreview { get; set; }
+    /// <summary>Markdown. Ingredients and steps as chef Lan writes them.</summary>
+    public string? Recipes { get; set; }
 
     public bool IsPublished { get; set; } = true;
-
-    public string? ThumbnailUrl { get; set; }
 
     /// <summary>Recipe PDF or ingredient list.</summary>
     public string? ResourcesUrl { get; set; }
 
+    /// <summary>
+    /// Denormalized: number of published, non-deleted videos. Maintained by the lesson
+    /// video use cases inside the same transaction as the write.
+    /// </summary>
+    public int VideoCount { get; set; }
+
+    /// <summary>
+    /// Denormalized: sum of <see cref="LessonVideo.DurationSeconds"/> over published,
+    /// non-deleted videos. Derived — never set it directly from a request.
+    /// </summary>
+    public int DurationSeconds { get; set; }
+
     public uint RowVersion { get; set; }
 
     public Course? Course { get; set; }
+
+    /// <summary>
+    /// A lesson holds one or more videos. The video attributes — provider, external id,
+    /// duration, and whether it is free — live on the video, not here.
+    /// </summary>
+    public ICollection<LessonVideo> Videos { get; set; } = [];
 }

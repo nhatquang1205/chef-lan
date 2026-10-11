@@ -26,6 +26,8 @@ public sealed class CoursesDbContext(DbContextOptions<CoursesDbContext> options)
 
     public DbSet<Lesson> Lessons => Set<Lesson>();
 
+    public DbSet<LessonVideo> LessonVideos => Set<LessonVideo>();
+
     public DbSet<Category> Categories => Set<Category>();
 
     public DbSet<CourseCategory> CourseCategories => Set<CourseCategory>();

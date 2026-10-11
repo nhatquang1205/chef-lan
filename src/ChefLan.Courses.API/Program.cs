@@ -8,6 +8,9 @@ using ChefLan.Logic.DependencyInjection;
 using Microsoft.Extensions.Configuration.Json;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Text.Json.Serialization;
+
+const string WebCorsPolicy = "Web";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,10 +59,27 @@ builder.Services.AddChefLanAuth(builder.Configuration);
 builder.Services.AddChefLanAuthorization();
 
 // --- web ---------------------------------------------------------------------------
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers(o => o.Filters.Add<ValidationFilter>())
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// OpenAPI reads the minimal-API options, not MVC's, so without this the generated document
+// would describe enums as numbers while the API actually sends strings.
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddChefLanOpenApi();
+builder.Services.AddChefLanRateLimiting(builder.Configuration);
+
+// Browsers may call the API only from the configured web origins. No credentials: refresh
+// tokens travel in the JSON body, not cookies. An empty list means no cross-origin access.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddPolicy(WebCorsPolicy, policy => policy
+    .WithOrigins(allowedOrigins)
+    .WithHeaders("Authorization", "Content-Type")
+    .WithMethods("GET", "POST", "PUT", "DELETE")
+    .WithExposedHeaders("Retry-After")));
+builder.Services.AddChefLanForwardedHeaders(builder.Configuration);
 
 builder.Services
     .AddHealthChecks()
@@ -69,6 +89,7 @@ builder.Services
 
 var app = builder.Build();
 
+app.UseChefLanForwardedHeaders();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 
@@ -76,16 +97,29 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+}
 
-    // Development only. Production migrations ship as reviewed idempotent SQL:
-    //   dotnet ef migrations script --idempotent
-    // Calling Migrate() at startup races across replicas and needs DDL rights at runtime.
+// Development always seeds. Production seeds ONLY when explicitly asked (Seed__RunOnStartup=true),
+// for the first deploy: it creates the first Admin if none exists, and nothing else. Remove the
+// flag afterwards. Migrations never run here: production applies the reviewed idempotent SQL
+// from `make script` (calling Migrate() at startup races across replicas and needs DDL rights).
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Seed:RunOnStartup"))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        app.Logger.LogWarning("Seed:RunOnStartup is enabled. Remove it once the first Admin exists.");
+    }
+
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<CoursesDbSeeder>().SeedAsync();
 }
 
+app.UseCors(WebCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseChefLanRateLimitEmail();
+app.UseRateLimiter();
+app.UseChefLanCurrentUser();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

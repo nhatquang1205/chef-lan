@@ -1,0 +1,79 @@
+using ChefLan.Domain.Courses.Entities;
+using ChefLan.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace ChefLan.DB.Configurations.Courses;
+
+public sealed class LessonVideoConfiguration : IEntityTypeConfiguration<LessonVideo>
+{
+    public void Configure(EntityTypeBuilder<LessonVideo> builder)
+    {
+        builder.ToTable("lesson_videos", ChefLanSchemas.Courses, t =>
+        {
+            t.HasCheckConstraint("ck_lesson_videos_sort_order_non_negative", "sort_order >= 0");
+            t.HasCheckConstraint("ck_lesson_videos_duration_non_negative", "duration_seconds >= 0");
+            t.HasCheckConstraint("ck_lesson_videos_provider", "provider IN (0, 1, 2, 3, 4, 5)");
+            t.HasCheckConstraint(
+                "ck_lesson_videos_free_till_positive",
+                "free_till_seconds IS NULL OR free_till_seconds > 0");
+
+            // A free-until limit is meaningless on a video nobody may watch for free.
+            t.HasCheckConstraint(
+                "ck_lesson_videos_free_till_requires_free",
+                "free_till_seconds IS NULL OR is_free = true");
+
+            t.HasCheckConstraint(
+                "ck_lesson_videos_published_has_source",
+                "is_published = false OR provider = 0 OR external_id IS NOT NULL OR url IS NOT NULL");
+        });
+
+        builder.HasKey(v => v.Id).HasName("pk_lesson_videos");
+
+        builder.Property(v => v.Id).UseIdentityByDefaultColumn();
+
+        builder.Property(v => v.Title).HasMaxLength(200).IsRequired();
+
+        builder.Property(v => v.Provider)
+            .HasConversion<int>()
+            .HasDefaultValue(VideoProvider.Bunny)
+            .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
+
+        builder.Property(v => v.ExternalId)
+            .HasMaxLength(100)
+            .HasComment("Provider id (Bunny video GUID). Never handed out unsigned.");
+
+        builder.Property(v => v.Url).HasMaxLength(1000);
+
+        builder.Property(v => v.ThumbnailUrl).HasMaxLength(1000);
+
+        builder.Property(v => v.DurationSeconds).HasDefaultValue(0);
+
+        builder.Property(v => v.IsFree).HasDefaultValue(false);
+
+        builder.Property(v => v.FreeTillSeconds)
+            .HasComment("NULL = the whole video is free. Enforced by the frontend, not the API.");
+
+        builder.Property(v => v.IsPublished).HasDefaultValue(true);
+
+        builder.Property(v => v.IsDeleted).HasDefaultValue(false);
+
+        builder.Property(v => v.RowVersion).IsRowVersion();
+
+        // DELIBERATELY NOT UNIQUE — same reason as lessons: a partial unique index cannot be
+        // DEFERRABLE in Postgres, so a unique one rejects the intermediate states of a
+        // drag-and-drop reorder. The reorder use case owns uniqueness, rewriting every row
+        // of the lesson in one transaction.
+        builder.HasIndex(v => new { v.LessonId, v.SortOrder })
+            .HasDatabaseName("ix_lesson_videos_lesson_id_sort_order")
+            .HasFilter("is_deleted = false");
+
+        builder.HasOne(v => v.Lesson)
+            .WithMany(l => l.Videos)
+            .HasForeignKey(v => v.LessonId)
+            .HasConstraintName("fk_lesson_videos_lessons_lesson_id")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasQueryFilter(v => !v.IsDeleted);
+    }
+}

@@ -1,7 +1,5 @@
 using ChefLan.Commons.Auth;
-using ChefLan.Commons.Text;
 using ChefLan.DB.Contexts;
-using ChefLan.Domain.Courses.Entities;
 using ChefLan.Domain.Enums;
 using ChefLan.Domain.Identity.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,32 +9,18 @@ using Microsoft.Extensions.Logging;
 namespace ChefLan.Infrastructure.Seed;
 
 /// <summary>
-/// Idempotent: creates the first Admin staff account and the starter categories.
-///
-/// Seeds NO customers. Those come from registration or from staff entering a Facebook-era
-/// buyer — never from a fixture.
+/// Idempotent: creates the first Admin staff account and nothing else. No categories, no
+/// customers — those come from the admin endpoints and from registration.
 /// </summary>
 public sealed class CoursesDbSeeder(
     CoursesDbContext context,
     IPasswordHasher passwordHasher,
-    ISlugGenerator slugGenerator,
     IConfiguration configuration,
     ILogger<CoursesDbSeeder> logger)
 {
-    private static readonly string[] StarterCategories =
-    [
-        "Món Bắc",
-        "Món Trung",
-        "Món Nam",
-        "Bánh ngọt",
-        "Món chay",
-        "Món nước",
-    ];
-
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         await SeedAdminAsync(cancellationToken);
-        await SeedCategoriesAsync(cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
     }
@@ -71,27 +55,5 @@ public sealed class CoursesDbSeeder(
         });
 
         logger.LogInformation("Seeded the first Admin staff account {Email}.", email);
-    }
-
-    private async Task SeedCategoriesAsync(CancellationToken cancellationToken)
-    {
-        if (await context.Categories.AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
-        var order = 0;
-
-        foreach (var name in StarterCategories)
-        {
-            context.Categories.Add(new Category
-            {
-                Name = name,
-                Slug = slugGenerator.Generate(name, 140),
-                DisplayOrder = order += 10,
-            });
-        }
-
-        logger.LogInformation("Seeded {Count} starter categories.", StarterCategories.Length);
     }
 }

@@ -10,6 +10,13 @@ public static class IdentityErrors
     public static readonly Error InvalidCredentials =
         Error.Unauthorized("identity.invalid_credentials", "Email or password is incorrect.");
 
+    public static readonly Error InvalidRefreshToken =
+        Error.Unauthorized("identity.invalid_refresh_token", "The refresh token is invalid or expired.");
+
+    // 400, not 401: a 401 would make the client think its session expired.
+    public static readonly Error CurrentPasswordIncorrect =
+        Error.Validation("identity.current_password_incorrect", "The current password is incorrect.");
+
     public static readonly Error AccountLocked =
         Error.Forbidden("identity.account_locked", "This account is temporarily locked. Try again later.");
 

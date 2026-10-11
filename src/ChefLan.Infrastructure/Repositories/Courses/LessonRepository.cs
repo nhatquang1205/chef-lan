@@ -1,46 +1,39 @@
 using ChefLan.DB.Contexts;
 using ChefLan.Domain.Courses.Entities;
 using ChefLan.Logic.Courses.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChefLan.Infrastructure.Repositories.Courses;
 
 /// <summary>
-/// SKELETON — not implemented yet. Arrives with the admin lesson endpoints (step 2).
-///
-/// When implementing: ix_lessons_course_id_sort_order is deliberately NOT unique, because
-/// a partial unique index cannot be DEFERRABLE in Postgres and a unique one would reject
-/// the intermediate states of a drag-and-drop reorder. So uniqueness of sort_order within
-/// a course is this layer's job, not the database's: the reorder use case must rewrite
-/// every row of the course inside one transaction. Do not add a unique index to "fix" it.
-///
-/// NextSortOrderAsync should return max(sort_order) + 1 over live rows, and 0 for a course
-/// with no lessons.
+/// ix_lessons_course_id_sort_order is deliberately NOT unique, because a partial unique
+/// index cannot be DEFERRABLE in Postgres and a unique one would reject the intermediate
+/// states of a drag-and-drop reorder. Uniqueness of sort_order within a course is the
+/// reorder use case's job. Do not add a unique index to "fix" it.
 /// </summary>
 internal sealed class LessonRepository(CoursesDbContext context) : ILessonRepository
 {
     public Task<Lesson?> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("LessonRepository.GetByIdAsync — step 2 (admin lessons).");
+        context.Lessons.FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
 
-    public Task<Lesson?> GetBySlugAsync(
-        long courseId,
-        string slug,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("LessonRepository.GetBySlugAsync — step 2 (lesson player).");
-
-    public Task<IReadOnlyList<Lesson>> ListForCourseAsync(
+    public async Task<IReadOnlyList<Lesson>> ListForCourseAsync(
         long courseId,
         bool includeUnpublished = false,
         CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("LessonRepository.ListForCourseAsync — step 2.");
+        await context.Lessons
+            .Where(l => l.CourseId == courseId && (includeUnpublished || l.IsPublished))
+            .OrderBy(l => l.SortOrder)
+            .ThenBy(l => l.Id)
+            .ToListAsync(cancellationToken);
 
-    public Task<bool> SlugExistsInCourseAsync(
+    public async Task<IReadOnlySet<string>> GetSlugsWithPrefixInCourseAsync(
         long courseId,
-        string slug,
+        string prefix,
         CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("LessonRepository.SlugExistsInCourseAsync — step 2.");
-
-    public Task<int> NextSortOrderAsync(long courseId, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("LessonRepository.NextSortOrderAsync — step 2.");
+        (await context.Lessons
+            .Where(l => l.CourseId == courseId && l.Slug.StartsWith(prefix))
+            .Select(l => l.Slug)
+            .ToListAsync(cancellationToken)).ToHashSet();
 
     public void Add(Lesson lesson) => context.Lessons.Add(lesson);
 

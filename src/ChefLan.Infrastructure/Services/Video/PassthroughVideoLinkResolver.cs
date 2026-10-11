@@ -4,14 +4,20 @@ using ChefLan.Logic.Courses.Video;
 namespace ChefLan.Infrastructure.Services.Video;
 
 /// <summary>
-/// v1: hands back the stored URL as-is. Replace this — do not edit callers — when link
-/// leaking becomes a real problem. See <see cref="IVideoLinkResolver"/>.
+/// Local-development fallback, used when Video:Bunny is not configured. Hands back the
+/// stored URL as-is.
+///
+/// **Not safe for production** — an unsigned URL is a permanent shareable link. It still
+/// honours entitlement, so a non-free video resolves to null rather than leaking.
 /// </summary>
 public sealed class PassthroughVideoLinkResolver : IVideoLinkResolver
 {
     public ValueTask<string?> ResolveAsync(
-        Lesson lesson,
-        long customerId,
+        LessonVideo video,
+        bool hasFullAccess,
+        long? customerId,
         CancellationToken cancellationToken = default) =>
-        ValueTask.FromResult(lesson.VideoUrl);
+        hasFullAccess || video.IsFree
+            ? ValueTask.FromResult(video.Url)
+            : ValueTask.FromResult<string?>(null);
 }

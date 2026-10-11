@@ -22,8 +22,7 @@ public static class AuthServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<ICurrentStaffContext, HttpCurrentStaffContext>();
-        services.AddScoped<ICurrentCustomerContext, HttpCurrentCustomerContext>();
+        services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
         BindScheme(services, configuration, ChefLanAuthSchemes.Internal, ChefLanAudiences.Internal);
         BindScheme(services, configuration, ChefLanAuthSchemes.Customer, ChefLanAudiences.Customer);

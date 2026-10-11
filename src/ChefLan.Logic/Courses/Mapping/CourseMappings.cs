@@ -26,11 +26,32 @@ public static class CourseMappings
         LessonCount = course.LessonCount,
         TotalDurationSeconds = course.TotalDurationSeconds,
         AccessDurationDays = course.AccessDurationDays,
-        Categories = course.CourseCategories
-            .Where(cc => cc.Category is not null)
-            .Select(cc => cc.Category!.ToResponse())
-            .OrderBy(c => c.DisplayOrder)
-            .ToList(),
+        Categories = course.Categories(),
+    };
+
+    public static CourseAdminDetailResponse ToAdminDetailResponse(this Course course) => new()
+    {
+        Id = course.Id,
+        Slug = course.Slug,
+        Title = course.Title,
+        Subtitle = course.Subtitle,
+        Description = course.Description,
+        WhatYouWillLearn = course.WhatYouWillLearn,
+        MetaDescription = course.MetaDescription,
+        ThumbnailUrl = course.ThumbnailUrl,
+        PromoVideoUrl = course.PromoVideoUrl,
+        Level = course.Level,
+        Status = course.Status,
+        PublishedAt = course.PublishedAt,
+        PriceVnd = course.PriceVnd,
+        CompareAtPriceVnd = course.CompareAtPriceVnd,
+        Currency = course.Currency,
+        AccessDurationDays = course.AccessDurationDays,
+        LessonCount = course.LessonCount,
+        TotalDurationSeconds = course.TotalDurationSeconds,
+        EnrollmentCount = course.EnrollmentCount,
+        LegacyFacebookGroupUrl = course.LegacyFacebookGroupUrl,
+        Categories = course.Categories(),
     };
 
     public static CategoryResponse ToResponse(this Category category) => new()
@@ -41,4 +62,22 @@ public static class CourseMappings
         ThumbnailUrl = category.ThumbnailUrl,
         DisplayOrder = category.DisplayOrder,
     };
+
+    public static CategoryAdminResponse ToAdminResponse(this Category category) => new()
+    {
+        Id = category.Id,
+        Name = category.Name,
+        Slug = category.Slug,
+        Description = category.Description,
+        ThumbnailUrl = category.ThumbnailUrl,
+        DisplayOrder = category.DisplayOrder,
+        Status = category.Status,
+    };
+
+    private static List<CategoryResponse> Categories(this Course course) => course.CourseCategories
+        .Where(cc => cc.Category is not null)
+        .Select(cc => cc.Category!.ToResponse())
+        .OrderBy(c => c.DisplayOrder)
+        .ThenBy(c => c.Id)
+        .ToList();
 }

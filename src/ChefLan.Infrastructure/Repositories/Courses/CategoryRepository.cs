@@ -1,34 +1,65 @@
 using ChefLan.DB.Contexts;
 using ChefLan.Domain.Courses.Entities;
+using ChefLan.Domain.Enums;
 using ChefLan.Logic.Courses.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChefLan.Infrastructure.Repositories.Courses;
 
-/// <summary>
-/// SKELETON — not implemented yet. Arrives with the public category endpoint and admin
-/// course editing (step 2). GetByIdsAsync exists so assigning categories to a course is
-/// one round trip rather than N.
-/// </summary>
 internal sealed class CategoryRepository(CoursesDbContext context) : ICategoryRepository
 {
     public Task<Category?> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("CategoryRepository.GetByIdAsync — step 2.");
+        context.Categories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
-    public Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("CategoryRepository.GetBySlugAsync — step 2.");
+    public async Task<IReadOnlyList<Category>> ListAsync(
+        CategoryStatus? status,
+        string? search,
+        CancellationToken cancellationToken = default)
+    {
+        var query = context.Categories.AsNoTracking().AsQueryable();
 
-    public Task<IReadOnlyList<Category>> ListAsync(CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("CategoryRepository.ListAsync — step 2 (GET /api/v1/categories).");
+        if (status is not null)
+        {
+            query = query.Where(c => c.Status == status);
+        }
 
-    public Task<IReadOnlyList<Category>> GetByIdsAsync(
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = LikePattern.Contains(search.Trim());
+            query = query.Where(c => EF.Functions.ILike(c.Name, pattern, LikePattern.EscapeCharacter));
+        }
+
+        return await query
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .ThenBy(c => c.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Category>> GetByIdsAsync(
         IReadOnlyCollection<long> ids,
         CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("CategoryRepository.GetByIdsAsync — step 2.");
+        await context.Categories.Where(c => ids.Contains(c.Id)).ToListAsync(cancellationToken);
 
-    public Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("CategoryRepository.SlugExistsAsync — step 2.");
+    /// <summary>
+    /// Honours the soft-delete filter on purpose: uq_categories_slug is partial on
+    /// is_deleted = false, so a deleted category releases its slug.
+    /// </summary>
+    public async Task<IReadOnlySet<string>> GetSlugsWithPrefixAsync(
+        string prefix,
+        CancellationToken cancellationToken = default) =>
+        (await context.Categories
+            .Where(c => c.Slug.StartsWith(prefix))
+            .Select(c => c.Slug)
+            .ToListAsync(cancellationToken)).ToHashSet();
+
+    public Task<bool> IsInUseAsync(long id, CancellationToken cancellationToken = default) =>
+        context.CourseCategories.AnyAsync(
+            cc => cc.CategoryId == id && !cc.Course!.IsDeleted,
+            cancellationToken);
 
     public void Add(Category category) => context.Categories.Add(category);
 
+    /// <summary>Soft delete — the interceptor turns this into an update.</summary>
     public void Remove(Category category) => context.Categories.Remove(category);
 }

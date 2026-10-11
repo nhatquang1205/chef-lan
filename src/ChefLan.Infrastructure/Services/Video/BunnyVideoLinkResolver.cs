@@ -14,7 +14,7 @@ namespace ChefLan.Infrastructure.Services.Video;
 ///
 /// Signing formula, from Bunny's docs:
 ///     token   = SHA256_HEX(TokenSecurityKey + videoId + expiresUnixSeconds)
-///     url     = {EmbedBaseUrl}/embed/{libraryId}/{videoId}?token={token}&expires={expires}
+///     url     = {EmbedBaseUrl}/embed/{libraryId}/{videoId}?token={token}&amp;expires={expires}
 ///
 /// What this does and does not buy you: the URL is TIME-bound, not viewer-bound — Bunny's
 /// embed token formula has no field for a customer id. So a copied link works for anyone
@@ -23,7 +23,7 @@ namespace ChefLan.Infrastructure.Services.Video;
 /// dashboard. Neither stops a screen recording; the threat being addressed is a link
 /// pasted into a group chat, which this makes useless within hours.
 ///
-/// customerId is still taken and logged, so access is attributable after the fact.
+/// customerId is logged, so access is attributable after the fact.
 /// </summary>
 internal sealed class BunnyVideoLinkResolver(
     IOptions<BunnyStreamOptions> options,
@@ -33,35 +33,45 @@ internal sealed class BunnyVideoLinkResolver(
     private readonly BunnyStreamOptions _options = options.Value;
 
     public ValueTask<string?> ResolveAsync(
-        Lesson lesson,
-        long customerId,
+        LessonVideo video,
+        bool hasFullAccess,
+        long? customerId,
         CancellationToken cancellationToken = default)
     {
-        // Lessons hosted elsewhere (a free YouTube preview, say) are returned untouched.
-        if (lesson.VideoProvider != VideoProvider.Bunny)
+        // Entitlement first, provider second — a non-free video must not leak a URL
+        // regardless of where it is hosted.
+        if (!hasFullAccess && !video.IsFree)
         {
-            return ValueTask.FromResult(lesson.VideoUrl);
+            return ValueTask.FromResult<string?>(null);
         }
 
-        if (string.IsNullOrWhiteSpace(lesson.VideoExternalId))
+        // Videos hosted elsewhere (a free YouTube teaser, say) are returned untouched.
+        if (video.Provider != VideoProvider.Bunny)
         {
-            // Fail closed: a Bunny lesson with no video GUID is a data error, and handing
-            // back VideoUrl here could leak an unsigned URL.
+            return ValueTask.FromResult(video.Url);
+        }
+
+        if (string.IsNullOrWhiteSpace(video.ExternalId))
+        {
+            // Fail closed: a Bunny video with no GUID is a data error, and falling back to
+            // Url here could hand out an unsigned link.
             logger.LogError(
-                "Lesson {LessonId} is marked VideoProvider.Bunny but has no VideoExternalId.",
-                lesson.Id);
+                "LessonVideo {LessonVideoId} is marked VideoProvider.Bunny but has no ExternalId.",
+                video.Id);
 
             return ValueTask.FromResult<string?>(null);
         }
 
-        var videoId = lesson.VideoExternalId;
+        var videoId = video.ExternalId;
         var expires = new DateTimeOffset(clock.UtcNow).ToUnixTimeSeconds() + _options.TokenLifetimeSeconds;
         var token = Sign(videoId, expires);
 
         logger.LogDebug(
-            "Signed Bunny playback for lesson {LessonId} / customer {CustomerId}, expires {Expires}.",
-            lesson.Id,
+            "Signed Bunny playback for video {LessonVideoId} / customer {CustomerId}, "
+            + "fullAccess {HasFullAccess}, expires {Expires}.",
+            video.Id,
             customerId,
+            hasFullAccess,
             expires);
 
         var url =

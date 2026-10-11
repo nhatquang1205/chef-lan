@@ -1,5 +1,4 @@
 using ChefLan.Domain.Courses.Entities;
-using ChefLan.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,12 +10,13 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
     {
         builder.ToTable("lessons", ChefLanSchemas.Courses, t =>
         {
-            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4, 5)");
             t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
             t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
-            t.HasCheckConstraint(
-                "ck_lessons_published_has_video",
-                "is_published = false OR video_provider = 0 OR video_url IS NOT NULL");
+            t.HasCheckConstraint("ck_lessons_video_count_non_negative", "video_count >= 0");
+
+            // ck_lessons_video_provider and ck_lessons_published_has_video are gone — the
+            // columns they guarded moved to lesson_videos, and the equivalent rule is
+            // ck_lesson_videos_published_has_source.
         });
 
         builder.HasKey(l => l.Id).HasName("pk_lessons");
@@ -27,26 +27,19 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
 
         builder.Property(l => l.Title).HasMaxLength(200).IsRequired();
 
-        builder.Property(l => l.VideoProvider)
-            .HasConversion<int>()
-            .HasDefaultValue(VideoProvider.YouTube)
-            .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
-
-        builder.Property(l => l.VideoUrl).HasMaxLength(1000);
-
-        builder.Property(l => l.VideoExternalId)
-            .HasMaxLength(100)
-            .HasComment("Provider id, so the frontend can build an embed without parsing URLs");
-
-        builder.Property(l => l.DurationSeconds).HasDefaultValue(0);
-
-        builder.Property(l => l.IsFreePreview).HasDefaultValue(false);
+        builder.Property(l => l.Recipes).HasComment("Markdown");
 
         builder.Property(l => l.IsPublished).HasDefaultValue(true);
 
-        builder.Property(l => l.ThumbnailUrl).HasMaxLength(1000);
-
         builder.Property(l => l.ResourcesUrl).HasMaxLength(1000);
+
+        builder.Property(l => l.VideoCount)
+            .HasDefaultValue(0)
+            .HasComment("Denormalized count of published, non-deleted lesson_videos");
+
+        builder.Property(l => l.DurationSeconds)
+            .HasDefaultValue(0)
+            .HasComment("Denormalized sum of published, non-deleted lesson_videos durations");
 
         builder.Property(l => l.IsDeleted).HasDefaultValue(false);
 

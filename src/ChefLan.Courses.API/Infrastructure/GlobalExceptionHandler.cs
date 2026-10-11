@@ -1,3 +1,4 @@
+using ChefLan.Logic.Abstractions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +15,22 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (exception is ConflictException conflict)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+            await httpContext.Response.WriteAsJsonAsync(
+                new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Conflict",
+                    Detail = conflict.Message,
+                    Instance = httpContext.Request.Path,
+                },
+                cancellationToken);
+
+            return true;
+        }
+
         logger.LogError(
             exception,
             "Unhandled exception for {Method} {Path}",

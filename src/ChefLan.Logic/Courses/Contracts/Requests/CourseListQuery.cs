@@ -3,7 +3,7 @@ using ChefLan.Domain.Enums;
 
 namespace ChefLan.Logic.Courses.Contracts.Requests;
 
-public sealed record CourseListQuery : PagedRequest
+public record CourseListQuery : PagedRequest
 {
     /// <summary>Free-text match on title and subtitle.</summary>
     public string? Q { get; init; }

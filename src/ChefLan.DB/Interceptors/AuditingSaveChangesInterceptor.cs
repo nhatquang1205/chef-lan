@@ -13,7 +13,7 @@ namespace ChefLan.DB.Interceptors;
 /// The actor is the STAFF user when one is signed in. Customer-initiated writes leave the
 /// actor null, because a customer id in a column named *UserId would be a lie.
 /// </summary>
-public sealed class AuditingSaveChangesInterceptor(IClock clock, ICurrentStaffContext staff)
+public sealed class AuditingSaveChangesInterceptor(IClock clock, ICurrentUser currentUser)
     : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
@@ -41,7 +41,7 @@ public sealed class AuditingSaveChangesInterceptor(IClock clock, ICurrentStaffCo
         }
 
         var now = clock.UtcNow;
-        var actorId = staff.UserId;
+        long? actorId = currentUser.TryGetStaffId(out var staffId) ? staffId : null;
 
         foreach (var entry in context.ChangeTracker.Entries<IAuditable>())
         {

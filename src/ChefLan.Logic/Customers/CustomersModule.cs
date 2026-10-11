@@ -1,3 +1,6 @@
+using ChefLan.Logic.Customers.Interfaces;
+using ChefLan.Logic.Customers.Services;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ChefLan.Logic.Customers;
@@ -9,5 +12,13 @@ namespace ChefLan.Logic.Customers;
 /// </summary>
 public static class CustomersModule
 {
-    public static IServiceCollection AddCustomersModule(this IServiceCollection services) => services;
+    public static IServiceCollection AddCustomersModule(this IServiceCollection services)
+    {
+        services.AddScoped<ICustomerAuthService, CustomerAuthService>();
+        services.AddValidatorsFromAssemblyContaining<ICustomerAuthService>(
+            includeInternalTypes: true,
+            filter: f => f.ValidatorType.Namespace == typeof(CustomersModule).Namespace + ".Validators");
+
+        return services;
+    }
 }

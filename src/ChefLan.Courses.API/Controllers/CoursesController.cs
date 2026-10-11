@@ -1,4 +1,6 @@
+using ChefLan.Commons.Auth;
 using ChefLan.Commons.Pagination;
+using ChefLan.Courses.API.Infrastructure;
 using ChefLan.Domain.Enums;
 using ChefLan.Logic.Courses.Contracts.Requests;
 using ChefLan.Logic.Courses.Contracts.Responses;
@@ -18,7 +20,7 @@ namespace ChefLan.Courses.API.Controllers;
 [AllowAnonymous]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public sealed class CoursesController(ICourseCatalogService catalog) : ControllerBase
+public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUser currentUser) : ControllerBase
 {
     /// <summary>Lists published courses, newest first by default.</summary>
     [HttpGet]
@@ -43,5 +45,19 @@ public sealed class CoursesController(ICourseCatalogService catalog) : Controlle
         };
 
         return Ok(await catalog.ListPublishedAsync(query, cancellationToken));
+    }
+
+    /// <summary>
+    /// The course page: outline plus the videos a visitor may watch. A draft is a 404 here.
+    /// Non-free videos carry no URL.
+    /// </summary>
+    [HttpGet("{slug}")]
+    [ProducesResponseType(typeof(CourseDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CourseDetailResponse>> Get(string slug, CancellationToken cancellationToken)
+    {
+        long? customerId = currentUser.TryGetCustomerId(out var id) ? id : null;
+
+        return (await catalog.GetPublishedBySlugAsync(slug, customerId, cancellationToken)).ToActionResult(this);
     }
 }

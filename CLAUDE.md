@@ -9,10 +9,15 @@ group per course, videos posted there, customers added by hand) with a real syst
 record. Courses, lessons and video links live in this backend. It also serves the
 **internal** side of the business, which is why there are two separate account populations.
 
-**Status**: step 1 (solution structure + schema) is complete and verified. Auth endpoints,
-admin CRUD and customer learning endpoints are step 2. The approved step-1 plan is at
-`~/.claude/plans/i-want-to-build-zany-elephant.md` and carries the reasoning behind most
-decisions below.
+**Status**: the solution structure, schema and **authentication** (staff and customer login,
+refresh, logout, `me`, rate limiting) and **content CRUD** (categories, courses, lessons,
+lesson videos, publish) are done and verified — see `docs/auth/` and `docs/course-content/`.
+Next: enrollments and the customer learning endpoints. The docs carry the reasoning behind
+most decisions below.
+
+**Feature docs live in `docs/<feature>/`** — `spec.md` for context, decisions and shared
+rules, plus one numbered file per plan under `plans/`. Keep them current as work lands;
+`spec.md` carries the plan index and status table.
 
 ## Commands
 
@@ -162,7 +167,7 @@ shared token. A staff member who buys a course registers a separate customer acc
 | audience | `cheflan-internal` | `cheflan-customer` |
 | signing key | `Jwt:Internal:SigningKey` | `Jwt:Customer:SigningKey` |
 | `act` claim | `Staff` | `Customer` |
-| routes | `/api/v1/admin/**` | everything else |
+| routes | `/api/v1/admins/**` | everything else |
 | self-registration | no — an Admin creates them | yes |
 
 **`sub` means different things under the two schemes** — a user id under `Internal`, a
@@ -176,11 +181,23 @@ customer id under `Customer`. If both validated with the same key, a customer to
 4. Every policy pins `AddAuthenticationSchemes(...)`, so a customer token on an admin route
    fails authentication rather than falling through to a role check.
 
-**Do not add a unified "current principal" accessor.** `ICurrentStaffContext` and
-`ICurrentCustomerContext` are separate on purpose and each returns null unless the matching
-`act` claim is present. A shared accessor is how those two ids get confused.
+**`ICurrentUser` is the one accessor for both populations**, filled by
+`app.UseChefLanCurrentUser()`, which **must run after `UseAuthorization()`** — the default
+scheme is `Customer` and policies pin their own, so `HttpContext.User` is only the right
+principal once authorization has run. It deliberately has **no bare `long Id`**: read an id
+with `TryGetStaffId` or `TryGetCustomerId`, each of which is false unless the `act` claim
+matches. That is what stops a customer id being used as a staff id. `Source` is null when
+unauthenticated. Controllers on a pinned policy still guard with `TryGet*Id` and return 401.
 
 `MapInboundClaims = false` keeps the short claim names (`sub`, `role`, `act`).
+
+Login rules, identical for both populations (`ChefLan.Logic/Abstractions/LoginSecurity.cs`):
+5 failures lock for 15 minutes (the locked check runs *before* the password check, so the
+right password is refused too); unknown email verifies against a dummy BCrypt hash so timing
+does not reveal which emails exist; refresh tokens rotate, and presenting an already-rotated
+one revokes every token for that account. Refresh tokens are SHA-256 hashed at rest and
+travel in the JSON body. A customer with no password gets a distinct 403 `not_activated` —
+a deliberate enumeration trade-off, flip it in `CustomerAuthService.LoginAsync` if unwanted.
 
 ## Customers without credentials, and why enrollments point at them
 
@@ -243,6 +260,47 @@ Boundary invariants — these are what make a future service split cheap:
 - **`Database.Migrate()` is never called outside Development.** It races across replicas and
   needs DDL rights at runtime. Production applies the reviewed output of `make script`.
 
+## API conventions
+
+- Admin routes are `/api/v1/admins/...` (plural); customer routes `/api/v1/...` are
+  read-only apart from auth. Admin controllers use `[Authorize(Policy = StaffOrAdmin)]`;
+  there is no Staff-vs-Admin permission split.
+- CORS: policy `Web`, origins from `Cors:AllowedOrigins` (empty = no cross-origin access;
+  `http://localhost:3000` in Development; production via `Cors__AllowedOrigins__0`). No
+  credentials — tokens are in JSON bodies. The customer web app is a separate repo
+  (`chef-lan-web`, see `docs/customer-web/`).
+- Enums travel as **strings** (`"status": "InActive"`), via `JsonStringEnumConverter`, registered for both MVC and the minimal-API options (OpenAPI
+  reads the latter, so without both the API document would describe enums as numbers).
+- Failures are `Result<T>` -> `ResultToActionResultExtensions`; validation is FluentValidation
+  in `ChefLan.Logic/**/Validators/`, run by `ValidationFilter` (400 `ValidationProblemDetails`).
+- A save that loses a race (stale `xmin`, or a unique index hit concurrently) throws
+  `ConflictException` from `UnitOfWork`, which the exception handler turns into a 409.
+- Slugs are generated on create and **never change on rename**; unique per scope with `-2`,
+  `-3`. Denormalized counters (`lesson_count`, `video_count`, durations) are recomputed in
+  memory from tracked entities and saved in the same `SaveChanges` as the write.
+- Reorder endpoints take the full ordered id list and 400 unless it is exactly the parent's
+  live children. Public video URLs always go through `IVideoLinkResolver`; a non-free video
+  has no `url` key in the response at all.
+
+## Deployment
+
+Production runs as a container (`Dockerfile`) behind nginx on the same domain as the website
+(`/api/` -> `127.0.0.1:5100`), next to the shared Postgres container. `deploy/` holds the compose
+file, `deploy-api.sh` and the VPS setup guide; `.github/workflows/deploy.yml` builds, pushes to GHCR
+and deploys. Design: `docs/deploy-api/`. Things that bite:
+
+- **Secrets are environment variables** from a `.env` on the VPS (`__` for `:`), never in the image.
+  The two JWT keys must differ and must not be the dev ones.
+- **The first Admin** is created only when `Seed__RunOnStartup=true` (idempotent, creates nothing
+  but an Admin if none exists). Set it for the first deploy, then remove it.
+- **Rate limiting depends on `ForwardedHeaders__KnownProxies__0`** being the Docker network gateway
+  (compose pins `172.30.10.1`). Wrong or missing, every visitor shares one login budget (5/min for
+  the whole site). nginx must *overwrite* `X-Forwarded-For`, not append.
+- Migrations are applied by the deploy from the generated idempotent SQL, as the app's own database
+  role, before the new container starts. Keep migrations backwards-compatible for one release:
+  rollback re-deploys the previous image against the newer schema.
+- CORS is empty in production (same origin); only Development allows `http://localhost:3000`.
+
 ## Slugs
 
 `VietnameseSlugGenerator` uses an **explicit Vietnamese character map, not Unicode NFD**.
@@ -284,7 +342,14 @@ collision via `GenerateUnique`.
   `POST https://video.bunnycdn.com/library/{libraryId}/videos` server-side, then hand the
   browser a TUS signature `SHA256(libraryId + apiKey + expiry + videoId)`. Proxying a
   multi-GB upload through ASP.NET is the wrong shape. (Not built yet.)
-- **Cross-scheme token rejection is wired but untested**, because step 1 has no protected
-  endpoints. Test it when step 2 adds them.
-- No rate limiting yet. Do not ship login without `AddRateLimiter` on both
-  `/api/v1/auth/*` and `/api/v1/admin/auth/*`.
+- **No automated tests yet.** Cross-scheme rejection (customer token on `/admins/*`, staff
+  token on `/me`, both 401), refresh-token replay and lockout were verified by hand with curl
+  against a running API. They are the security boundary and deserve Testcontainers tests.
+- **Rate limiting is per-process and in-memory** (`auth-login` 5/min, `auth-register` 3/min,
+  `auth-refresh` 20/min, by IP and by submitted email; limits in `appsettings.json` under
+  `RateLimiting`). Several replicas multiply the budget. Behind a proxy, set
+  `ForwardedHeaders:KnownProxies` — without it `RemoteIpAddress` is the proxy and every
+  client shares one IP bucket; never enable forwarded headers without restricting proxies.
+- `POST /api/v1/admins/auth/change-password` clears `must_change_password` and revokes all
+  of the user's refresh tokens (the caller included — they log in again). Nothing *enforces*
+  the flag yet: a staff member with it set can still use every endpoint.

@@ -77,6 +77,13 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("character varying(140)")
                         .HasColumnName("slug");
 
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("status")
+                        .HasComment("1=Active, 2=InActive");
+
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
@@ -98,7 +105,14 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasDatabaseName("uq_categories_slug")
                         .HasFilter("is_deleted = false");
 
-                    b.ToTable("categories", "courses");
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_categories_status")
+                        .HasFilter("is_deleted = false");
+
+                    b.ToTable("categories", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_categories_status", "status IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Course", b =>
@@ -473,7 +487,8 @@ namespace ChefLan.DB.Migrations.Courses
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
-                        .HasColumnName("duration_seconds");
+                        .HasColumnName("duration_seconds")
+                        .HasComment("Denormalized sum of published, non-deleted lesson_videos durations");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -481,17 +496,16 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
-                    b.Property<bool>("IsFreePreview")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_free_preview");
-
                     b.Property<bool>("IsPublished")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("is_published");
+
+                    b.Property<string>("Recipes")
+                        .HasColumnType("text")
+                        .HasColumnName("recipes")
+                        .HasComment("Markdown");
 
                     b.Property<string>("ResourcesUrl")
                         .HasMaxLength(1000)
@@ -509,6 +523,134 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)")
                         .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<int>("VideoCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("video_count")
+                        .HasComment("Denormalized count of published, non-deleted lesson_videos");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lessons");
+
+                    b.HasIndex("CourseId", "Slug")
+                        .IsUnique()
+                        .HasDatabaseName("uq_lessons_course_slug")
+                        .HasFilter("is_deleted = false");
+
+                    b.HasIndex("CourseId", "SortOrder")
+                        .HasDatabaseName("ix_lessons_course_id_sort_order")
+                        .HasFilter("is_deleted = false");
+
+                    b.ToTable("lessons", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
+
+                            t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
+
+                            t.HasCheckConstraint("ck_lessons_video_count_non_negative", "video_count >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.LessonVideo", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<long?>("DeletedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("deleted_by_user_id");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DurationSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("duration_seconds");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("external_id")
+                        .HasComment("Provider id (Bunny video GUID). Never handed out unsigned.");
+
+                    b.Property<int?>("FreeTillSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("free_till_seconds")
+                        .HasComment("NULL = the whole video is free. Enforced by the frontend, not the API.");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsFree")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_free");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_published");
+
+                    b.Property<long>("LessonId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("lesson_id");
+
+                    b.Property<int>("Provider")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("provider")
+                        .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer")
@@ -533,45 +675,31 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("bigint")
                         .HasColumnName("updated_by_user_id");
 
-                    b.Property<string>("VideoExternalId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("video_external_id")
-                        .HasComment("Provider id, so the frontend can build an embed without parsing URLs");
-
-                    b.Property<int>("VideoProvider")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("video_provider")
-                        .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
-
-                    b.Property<string>("VideoUrl")
+                    b.Property<string>("Url")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
-                        .HasColumnName("video_url");
+                        .HasColumnName("url");
 
                     b.HasKey("Id")
-                        .HasName("pk_lessons");
+                        .HasName("pk_lesson_videos");
 
-                    b.HasIndex("CourseId", "Slug")
-                        .IsUnique()
-                        .HasDatabaseName("uq_lessons_course_slug")
+                    b.HasIndex("LessonId", "SortOrder")
+                        .HasDatabaseName("ix_lesson_videos_lesson_id_sort_order")
                         .HasFilter("is_deleted = false");
 
-                    b.HasIndex("CourseId", "SortOrder")
-                        .HasDatabaseName("ix_lessons_course_id_sort_order")
-                        .HasFilter("is_deleted = false");
-
-                    b.ToTable("lessons", "courses", t =>
+                    b.ToTable("lesson_videos", "courses", t =>
                         {
-                            t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
+                            t.HasCheckConstraint("ck_lesson_videos_duration_non_negative", "duration_seconds >= 0");
 
-                            t.HasCheckConstraint("ck_lessons_published_has_video", "is_published = false OR video_provider = 0 OR video_url IS NOT NULL");
+                            t.HasCheckConstraint("ck_lesson_videos_free_till_positive", "free_till_seconds IS NULL OR free_till_seconds > 0");
 
-                            t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
+                            t.HasCheckConstraint("ck_lesson_videos_free_till_requires_free", "free_till_seconds IS NULL OR is_free = true");
 
-                            t.HasCheckConstraint("ck_lessons_video_provider", "video_provider IN (0, 1, 2, 3, 4, 5)");
+                            t.HasCheckConstraint("ck_lesson_videos_provider", "provider IN (0, 1, 2, 3, 4, 5)");
+
+                            t.HasCheckConstraint("ck_lesson_videos_published_has_source", "is_published = false OR provider = 0 OR external_id IS NOT NULL OR url IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_lesson_videos_sort_order_non_negative", "sort_order >= 0");
                         });
                 });
 
@@ -998,6 +1126,18 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("Course");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.LessonVideo", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Lesson", "Lesson")
+                        .WithMany("Videos")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_lesson_videos_lessons_lesson_id");
+
+                    b.Navigation("Lesson");
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Customers.Entities.CustomerRefreshToken", b =>
                 {
                     b.HasOne("ChefLan.Domain.Customers.Entities.Customer", "Customer")
@@ -1034,6 +1174,11 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("Enrollments");
 
                     b.Navigation("Lessons");
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Lesson", b =>
+                {
+                    b.Navigation("Videos");
                 });
 
             modelBuilder.Entity("ChefLan.Domain.Customers.Entities.Customer", b =>

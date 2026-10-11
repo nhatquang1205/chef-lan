@@ -1,0 +1,101 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One deploy at a time. A PR check may be cancelled by a newer push; a deploy already running on
+# the VPS must not be killed halfway.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/chef-lan-api
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      # The repo is kept at 0 warnings; a new one fails the build.
+      - run: dotnet build ChefLan.slnx -c Release -warnaserror
+      # Generated here (the VPS has no SDK) and shipped to the deploy. Attached to the run so a
+      # migration can be read before it is applied.
+      - run: |
+          dotnet tool restore
+          dotnet dotnet-ef migrations script --idempotent --output artifacts/cheflan-courses.sql \
+            --project src/ChefLan.DB/ChefLan.DB.csproj \
+            --startup-project src/ChefLan.Courses.API/ChefLan.Courses.API.csproj \
+            --context ChefLan.DB.Contexts.CoursesDbContext
+      - uses: actions/upload-artifact@v4
+        with:
+          name: schema-sql
+          path: artifacts/cheflan-courses.sql
+
+  image:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Pull requests build (proving the Dockerfile works) but never push.
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [check, image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: schema-sql
+          path: artifacts
+
+      - name: Load SSH key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # The compose file, the script and the SQL travel with the deploy, so the VPS never needs a
+      # checkout of this repo. The secrets live only in the .env already on the VPS.
+      - name: Copy deploy files
+        run: |
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'mkdir -p ~/chef-lan-api'
+          scp -P "$VPS_PORT" deploy/docker-compose.prod.yml deploy/deploy-api.sh artifacts/cheflan-courses.sql \
+            "$VPS_USER@$VPS_HOST:chef-lan-api/"
+
+      - name: Deploy
+        run: |
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "cd ~/chef-lan-api && IMAGE_TAG='${{ github.sha }}' bash deploy-api.sh"

@@ -1,0 +1,39 @@
+# Production API. Lives on the VPS in ~/chef-lan-api next to a `.env` (never committed).
+# The image comes from GHCR; IMAGE_TAG is set by deploy-api.sh (the git sha being deployed).
+name: cheflan
+
+services:
+  api:
+    image: ${IMAGE:-ghcr.io/nhatquang1205/chef-lan-api}:${IMAGE_TAG:?IMAGE_TAG is required}
+    container_name: cheflan-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Interpolated from .env, so the password is written once.
+      ConnectionStrings__ChefLanDb: "Host=${PG_HOST:-postgres};Port=5432;Database=${DB_NAME:-cheflan};Username=${DB_USER:-cheflan};Password=${DB_PASSWORD:?DB_PASSWORD is required}"
+    # Loopback only: nginx and chef-lan-web's server-side calls reach it here; it is never public.
+    ports:
+      - "127.0.0.1:${API_PORT:-5100}:8080"
+    networks:
+      cheflan:
+      postgres:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # A fixed subnet makes the gateway address known: it is the "client IP" the API sees for
+  # everything nginx forwards, and ForwardedHeaders__KnownProxies__0 must be exactly this.
+  cheflan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${API_SUBNET:-172.30.10.0/24}
+          gateway: ${API_GATEWAY:-172.30.10.1}
+  # The network the existing Postgres container is on (`docker network ls`).
+  postgres:
+    external: true
+    name: ${PG_NETWORK:-postgres_default}

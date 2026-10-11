@@ -20,6 +20,9 @@ public static class CourseQueryExtensions
     public static IQueryable<Course> OnlyPublished(this IQueryable<Course> query) =>
         query.Where(c => c.Status == CourseStatus.Published);
 
+    public static IQueryable<Course> WithStatus(this IQueryable<Course> query, CourseStatus? status) =>
+        status is null ? query : query.Where(c => c.Status == status);
+
     public static IQueryable<Course> WithCategorySlug(this IQueryable<Course> query, string? categorySlug) =>
         string.IsNullOrWhiteSpace(categorySlug)
             ? query
