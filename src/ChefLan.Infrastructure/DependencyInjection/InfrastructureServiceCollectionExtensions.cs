@@ -68,7 +68,7 @@ public static class InfrastructureServiceCollectionExtensions
         IHostEnvironment environment)
     {
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
-        services.Configure<BunnyStorageOptions>(configuration.GetSection(BunnyStorageOptions.SectionName));
+        services.Configure<B2StorageOptions>(configuration.GetSection(B2StorageOptions.SectionName));
         services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
 
         // Development logs instead of sending. Production MUST configure SMTP — a silently
@@ -82,15 +82,11 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddScoped<IEmailSender, SmtpEmailSender>();
         }
 
-        // Image storage (Bunny Storage) and the Stream management API. Both answer "not configured"
-        // to the upload endpoints rather than failing at startup, so a deployment without them
-        // still runs. Uploaded images are small and use the default timeout; video uploads can run
-        // for a long time, so that client has none (the request's cancellation token ends it).
-        services.AddHttpClient<IFileStorage, BunnyFileStorage>((sp, client) =>
-        {
-            client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<BunnyStorageOptions>>().Value.Endpoint.TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromMinutes(2);
-        });
+        // Image storage is Backblaze B2 (S3-compatible, like wish-list); Bunny is video only. Both answer
+        // "not configured" to the upload endpoints instead of failing at startup, so a deployment
+        // without them still runs. Video uploads can run for a long time, so that client has no timeout
+        // (the request's cancellation token ends it).
+        services.AddSingleton<IFileStorage, B2FileStorage>();
 
         services.AddHttpClient<IVideoHost, BunnyVideoHost>((sp, client) =>
         {

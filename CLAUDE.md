@@ -367,7 +367,7 @@ collision via `GenerateUnique`.
 - **Uploads go through this API, by decision** (`POST /api/v1/admins/uploads/images|videos`,
   staff only). **Images** take either the raw image as the request body (Postman: Body -> binary) or
   multipart with a `file` field; **videos** take multipart only. Images (JPEG/PNG/WebP, 5 MB, validated by file *content*, never the
-  client's name or type; SVG refused) go to a Bunny **Storage** zone and the response is the CDN URL.
+  client's name or type; SVG refused) go to a public **Backblaze B2** bucket (S3-compatible API via AWSSDK.S3, same as wish-list; Bunny is video only) and the response is the object's public URL.
   Videos are **streamed**: the controller reads the multipart body with `MultipartReader` (MVC's form
   binding is switched off for that action, or it would buffer the whole file) and forwards it to Bunny
   Stream as it arrives. Measured: a 381 MB upload raised API memory by ~12 MB and used no temp disk.
