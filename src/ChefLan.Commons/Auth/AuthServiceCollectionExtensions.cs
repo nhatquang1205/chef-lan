@@ -55,6 +55,10 @@ public static class AuthServiceCollectionExtensions
                 .RequireAuthenticatedUser()
                 .RequireClaim(ChefLanClaimTypes.ActorType, TokenActorType.Staff)
                 .RequireRole(ChefLanRoles.Admin, ChefLanRoles.Staff))
+            .AddPolicy(ChefLanPolicies.AnyUser, p => p
+                .AddAuthenticationSchemes(ChefLanAuthSchemes.Internal, ChefLanAuthSchemes.Customer)
+                .RequireAuthenticatedUser()
+                .RequireClaim(ChefLanClaimTypes.ActorType, TokenActorType.Staff, TokenActorType.Customer))
             .AddPolicy(ChefLanPolicies.CustomerOnly, p => p
                 .AddAuthenticationSchemes(ChefLanAuthSchemes.Customer)
                 .RequireAuthenticatedUser()

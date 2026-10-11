@@ -39,6 +39,7 @@ tables exist. Nothing in this feature needs a migration.
 | Staff routes | `/api/v1/admins/auth/*`, `/api/v1/admins/me` |
 | Customer routes | `/api/v1/auth/*`, `/api/v1/me` |
 | Staff registration | **none** — an Admin creates staff accounts |
+| Shared web login | **`/api/v1/auth/login`, `/refresh`, `/logout`, `/me` accept both populations** (added later, so the one web login form works for admins). Customer credentials first, then staff; separate tokens; see CLAUDE.md § Auth |
 | Refresh token transport | **JSON response body**, not a cookie |
 | Customer activation / invite | **out of scope** — later feature |
 | Password reset | **out of scope** |

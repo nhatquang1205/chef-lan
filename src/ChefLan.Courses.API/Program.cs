@@ -5,6 +5,8 @@ using ChefLan.DB.DependencyInjection;
 using ChefLan.Infrastructure.DependencyInjection;
 using ChefLan.Infrastructure.Seed;
 using ChefLan.Logic.DependencyInjection;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Configuration.Json;
 using Scalar.AspNetCore;
 using Serilog;
@@ -90,6 +92,17 @@ builder.Services
 var app = builder.Build();
 
 app.UseChefLanForwardedHeaders();
+
+// Form values (multipart prices, ids) are parsed with the request's culture. Left to the machine's
+// locale, "1200000.50" is 120,000,050 under vi-VN (the dot is a thousands separator) and 1,200,000.5
+// elsewhere: a silent, environment-dependent price bug. Pin it, and ignore Accept-Language.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture),
+    SupportedCultures = [CultureInfo.InvariantCulture],
+    SupportedUICultures = [CultureInfo.InvariantCulture],
+    RequestCultureProviders = [],
+});
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 

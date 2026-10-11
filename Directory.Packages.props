@@ -24,6 +24,7 @@
     <!-- ChefLan.Infrastructure -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
 
     <!-- ChefLan.Courses.API -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />

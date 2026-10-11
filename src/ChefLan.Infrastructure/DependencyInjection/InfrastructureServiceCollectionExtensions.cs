@@ -15,6 +15,7 @@ using ChefLan.Logic.Identity.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace ChefLan.Infrastructure.DependencyInjection;
 
@@ -67,7 +68,7 @@ public static class InfrastructureServiceCollectionExtensions
         IHostEnvironment environment)
     {
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
-        services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
+        services.Configure<BunnyStorageOptions>(configuration.GetSection(BunnyStorageOptions.SectionName));
         services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
 
         // Development logs instead of sending. Production MUST configure SMTP — a silently
@@ -81,7 +82,21 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddScoped<IEmailSender, SmtpEmailSender>();
         }
 
-        services.AddScoped<IFileStorage, LocalFileStorage>();
+        // Image storage (Bunny Storage) and the Stream management API. Both answer "not configured"
+        // to the upload endpoints rather than failing at startup, so a deployment without them
+        // still runs. Uploaded images are small and use the default timeout; video uploads can run
+        // for a long time, so that client has none (the request's cancellation token ends it).
+        services.AddHttpClient<IFileStorage, BunnyFileStorage>((sp, client) =>
+        {
+            client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<BunnyStorageOptions>>().Value.Endpoint.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromMinutes(2);
+        });
+
+        services.AddHttpClient<IVideoHost, BunnyVideoHost>((sp, client) =>
+        {
+            client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<BunnyStreamOptions>>().Value.ApiBaseUrl.TrimEnd('/') + "/");
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
 
         // Signed Bunny embeds as soon as Video:Bunny is configured; otherwise hand back the
         // stored URL so local development works with no Bunny account. The fallback is NOT

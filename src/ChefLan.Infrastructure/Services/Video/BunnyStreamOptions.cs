@@ -24,6 +24,9 @@ public sealed class BunnyStreamOptions
     /// <summary>AccessKey header for the Stream REST API. Server-side only.</summary>
     public string ApiKey { get; set; } = string.Empty;
 
+    /// <summary>Stream management API host (create/upload/delete).</summary>
+    public string ApiBaseUrl { get; set; } = "https://video.bunnycdn.com";
+
     public string EmbedBaseUrl { get; set; } = "https://iframe.mediadelivery.net";
 
     /// <summary>

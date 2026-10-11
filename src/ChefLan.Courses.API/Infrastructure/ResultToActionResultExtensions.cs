@@ -37,6 +37,8 @@ public static class ResultToActionResultExtensions
             ErrorType.Forbidden => (StatusCodes.Status403Forbidden, "Forbidden"),
             ErrorType.NotFound => (StatusCodes.Status404NotFound, "Not found"),
             ErrorType.Conflict => (StatusCodes.Status409Conflict, "Conflict"),
+            ErrorType.Unavailable => (StatusCodes.Status503ServiceUnavailable, "Not available"),
+            ErrorType.Upstream => (StatusCodes.Status502BadGateway, "Upstream service failed"),
             _ => (StatusCodes.Status500InternalServerError, "Unexpected error"),
         };
 

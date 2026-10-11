@@ -191,6 +191,23 @@ unauthenticated. Controllers on a pinned policy still guard with `TryGet*Id` and
 
 `MapInboundClaims = false` keeps the short claim names (`sub`, `role`, `act`).
 
+**The web client has one login form, so `/api/v1/auth/*` and `/api/v1/me` are a shared entry point.**
+`POST /api/v1/auth/login` tries the customer credentials first and, only if the *same* email and
+password are not a customer's (`customer.invalid_credentials`), tries them as a staff account — so an
+admin signs in on the web with her staff login and gets a normal **Internal** token. The response
+(`SessionResponse`) carries `actor: "Customer" | "Staff"` and exactly one of `customer` / `staff`.
+`/auth/refresh` falls back to the staff refresh-token table the same way, and `/auth/logout` and `/me`
+use the `AnyUser` policy (either scheme) and branch on `ICurrentUser`. Tokens are **not** merged: a staff
+token is still signed with the staff key, has the staff audience and `act=Staff`, still cannot be read
+as a customer id, and a customer token is still refused on `/api/v1/admins/**`. What is shared is only
+the entry point, so the rate limit (`auth-login`) and per-account lockout are too: five wrong passwords
+against an admin's email lock the admin out from either login endpoint. Every failing path costs two
+password verifications (a miss verifies a dummy hash), so neither status code, body nor timing says
+which population an email belongs to. A customer who exists but is locked, inactive or not activated
+gets *that* answer and is never retried as staff. Admin endpoints (`/api/v1/admins/**`) are unchanged.
+**Not done:** a staff token on the *public* endpoints (`/courses/{slug}`) is still treated as anonymous,
+so an admin does not yet see paid video links when signed in on the web.
+
 Login rules, identical for both populations (`ChefLan.Logic/Abstractions/LoginSecurity.cs`):
 5 failures lock for 15 minutes (the locked check runs *before* the password check, so the
 right password is refused too); unknown email verifies against a dummy BCrypt hash so timing
@@ -338,10 +355,29 @@ collision via `GenerateUnique`.
   A lesson marked `VideoProvider.Bunny` with no `VideoExternalId` resolves to `null`
   (fails closed) rather than falling back to `VideoUrl`, which would leak an unsigned link.
 
-- **Uploads go browser -> Bunny directly, never through this API.** Create the video via
-  `POST https://video.bunnycdn.com/library/{libraryId}/videos` server-side, then hand the
-  browser a TUS signature `SHA256(libraryId + apiKey + expiry + videoId)`. Proxying a
-  multi-GB upload through ASP.NET is the wrong shape. (Not built yet.)
+- **Course create/update also come as multipart/form-data** (`CourseFormRequest`) next to the JSON form:
+  same fields, plus the thumbnail as `thumbnailUrl` **or** `thumbnailFile` (both = 400
+  `course.thumbnail_conflict`); `categoryIds` is a repeated field. The form is validated *before* anything
+  is uploaded, and an image whose course then fails to save (e.g. unknown category) is deleted again. A
+  multipart PUT, like the JSON PUT, replaces the whole course: omit both thumbnail fields and the thumbnail
+  is cleared. Replacing a thumbnail leaves the old image on Bunny (no cleanup). **Form values are parsed
+  with the request culture**, so `Program.cs` pins it to invariant (`UseRequestLocalization`): without
+  that, `1200000.50` was silently 120,000,050 on a vi-VN machine. Never remove it. nginx must allow a
+  6 MB body on `/api/` for this.
+- **Uploads go through this API, by decision** (`POST /api/v1/admins/uploads/images|videos`,
+  staff only). **Images** take either the raw image as the request body (Postman: Body -> binary) or
+  multipart with a `file` field; **videos** take multipart only. Images (JPEG/PNG/WebP, 5 MB, validated by file *content*, never the
+  client's name or type; SVG refused) go to a Bunny **Storage** zone and the response is the CDN URL.
+  Videos are **streamed**: the controller reads the multipart body with `MultipartReader` (MVC's form
+  binding is switched off for that action, or it would buffer the whole file) and forwards it to Bunny
+  Stream as it arrives. Measured: a 381 MB upload raised API memory by ~12 MB and used no temp disk.
+  Keep it that way: no `IFormFile`, no `ReadFormAsync`, no buffering on this path. The video's id
+  (`videoId`) goes into a lesson video's `externalId`. A failed or aborted upload deletes the empty
+  Bunny video it created. **Two things to watch on the VPS:** nginx must have
+  `proxy_request_buffering off` on `/api/v1/admins/uploads/` (see `deploy/nginx-api.conf`), or it
+  spools the whole file to disk first; and Bunny's video `PUT` is sent with chunked transfer
+  encoding (the docs do not say whether `Content-Length` is required). If Bunny ever rejects that,
+  add a `size` form field and set the content length from it.
 - **No automated tests yet.** Cross-scheme rejection (customer token on `/admins/*`, staff
   token on `/me`, both 401), refresh-token replay and lockout were verified by hand with curl
   against a running API. They are the security boundary and deserve Testcontainers tests.

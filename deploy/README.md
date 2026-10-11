@@ -40,6 +40,11 @@ ForwardedHeaders__KnownProxies__0=172.30.10.1
 Video__Bunny__LibraryId=<...>
 Video__Bunny__ApiKey=<...>
 Video__Bunny__TokenSecurityKey=<...>
+# Image uploads (Bunny Storage zone + its CDN hostname) - see "Bunny setup" below
+Storage__Bunny__StorageZone=<zone name>
+Storage__Bunny__AccessKey=<zone password>
+Storage__Bunny__Endpoint=https://storage.bunnycdn.com
+Storage__Bunny__CdnBaseUrl=https://<pull-zone>.b-cdn.net
 
 # FIRST DEPLOY ONLY - remove these three lines afterwards, then redeploy:
 Seed__RunOnStartup=true
@@ -56,7 +61,7 @@ Seed__AdminPassword=<a strong temporary password>
 
 ### 3. nginx
 
-Paste `deploy/nginx-api.conf` into the chef-lan-web `server` block, then
+Paste `deploy/nginx-api.conf` (both `location` blocks) into the chef-lan-web `server` block, then
 `sudo nginx -t && sudo systemctl reload nginx`.
 
 ### 4. GitHub
@@ -65,6 +70,25 @@ Environment `production` with secrets `SSH_PRIVATE_KEY`, `VPS_HOST`, `VPS_USER` 
 not 22) - **per repository**, so add them to this repo too. After the first push to `main` builds the
 image, make the package public once (GitHub -> your profile -> Packages -> `chef-lan-api` -> Package
 settings -> Change visibility). The image holds no secrets, and then the VPS pulls it without a login.
+
+## Bunny setup (for uploads)
+
+Two separate Bunny products are used:
+
+| What | Bunny product | Env vars |
+|---|---|---|
+| Videos | **Stream** library | `Video__Bunny__LibraryId`, `Video__Bunny__ApiKey` (library API key), `Video__Bunny__TokenSecurityKey` (playback signing) |
+| Images | **Storage** zone + a **Pull zone** (CDN) in front of it | `Storage__Bunny__StorageZone`, `Storage__Bunny__AccessKey` (the zone's password), `Storage__Bunny__Endpoint` (must match the zone's main region), `Storage__Bunny__CdnBaseUrl` |
+
+1. Dashboard -> Storage -> **Add Storage Zone** (note the name and region). Under it, **FTP & API
+   Access** shows the zone **password**: that is `Storage__Bunny__AccessKey`.
+2. Connect a **Pull Zone** to the storage zone (the zone's "Connected pull zone"); its hostname,
+   `https://<name>.b-cdn.net`, is `Storage__Bunny__CdnBaseUrl`.
+3. Regional endpoints: Falkenstein `https://storage.bunnycdn.com` (default), Los Angeles
+   `https://la.storage.bunnycdn.com`, Singapore `https://sg.storage.bunnycdn.com`,
+   Sydney `https://syd.storage.bunnycdn.com`.
+4. Restart the API after editing `.env`. Without these variables the upload endpoints answer
+   **503** (not configured); everything else keeps working.
 
 ## After the first deploy
 
