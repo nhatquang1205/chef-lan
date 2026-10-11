@@ -22,6 +22,9 @@ public interface ICourseRepository
     /// </summary>
     Task<Course?> GetPublishedBySlugAsync(string slug, CancellationToken cancellationToken = default);
 
+    /// <summary>The id of a PUBLISHED course by slug; null for a draft or unknown slug.</summary>
+    Task<long?> GetPublishedIdBySlugAsync(string slug, CancellationToken cancellationToken = default);
+
     /// <summary>Tracked, no navigations.</summary>
     Task<Course?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
 

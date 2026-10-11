@@ -13,6 +13,7 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
             t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
             t.HasCheckConstraint("ck_lessons_video_count_non_negative", "video_count >= 0");
+            t.HasCheckConstraint("ck_lessons_price_non_negative", "price_vnd IS NULL OR price_vnd >= 0");
 
             // ck_lessons_video_provider and ck_lessons_published_has_video are gone — the
             // columns they guarded moved to lesson_videos, and the equivalent rule is
@@ -32,6 +33,10 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(l => l.IsPublished).HasDefaultValue(true);
 
         builder.Property(l => l.ResourcesUrl).HasMaxLength(1000);
+
+        builder.Property(l => l.PriceVnd)
+            .HasPrecision(12, 0)
+            .HasComment("Price to buy this lesson alone. NULL = not sold separately, only through the course");
 
         builder.Property(l => l.VideoCount)
             .HasDefaultValue(0)

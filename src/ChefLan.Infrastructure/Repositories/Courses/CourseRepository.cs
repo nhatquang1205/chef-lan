@@ -79,6 +79,14 @@ internal sealed class CourseRepository(CoursesDbContext context) : ICourseReposi
                 .ThenInclude(l => l.Videos.Where(v => v.IsPublished).OrderBy(v => v.SortOrder).ThenBy(v => v.Id))
             .FirstOrDefaultAsync(c => c.Slug == slug, cancellationToken);
 
+    public Task<long?> GetPublishedIdBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
+        context.Courses
+            .AsNoTracking()
+            .OnlyPublished()
+            .Where(c => c.Slug == slug)
+            .Select(c => (long?)c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<Course?> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
         context.Courses.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 

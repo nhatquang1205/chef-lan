@@ -34,6 +34,8 @@ public sealed class CoursesDbContext(DbContextOptions<CoursesDbContext> options)
 
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
 
+    public DbSet<LessonEnrollment> LessonEnrollments => Set<LessonEnrollment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(ChefLanSchemas.Courses);

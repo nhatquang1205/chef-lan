@@ -59,6 +59,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ILessonRepository, LessonRepository>();
         services.AddScoped<ILessonVideoRepository, LessonVideoRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+        services.AddScoped<ICustomerDirectory, CustomerDirectory>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
     }
 

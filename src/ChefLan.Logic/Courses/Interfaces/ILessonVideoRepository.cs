@@ -16,6 +16,12 @@ public interface ILessonVideoRepository
     /// </summary>
     Task<bool> CourseHasPlayableVideoAsync(long courseId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Read-only. A video by its PUBLIC id, with its lesson and course, only when the whole chain is
+    /// public: the video, its lesson and its course are published and none is deleted.
+    /// </summary>
+    Task<LessonVideo?> GetPublicByPublicIdAsync(string publicId, CancellationToken cancellationToken = default);
+
     void Add(LessonVideo video);
 
     /// <summary>Soft delete — the interceptor turns this into an update.</summary>

@@ -1,5 +1,6 @@
 using ChefLan.DB.Contexts;
 using ChefLan.Domain.Courses.Entities;
+using ChefLan.Domain.Enums;
 using ChefLan.Logic.Courses.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,20 @@ internal sealed class LessonVideoRepository(CoursesDbContext context) : ILessonV
                 && v.Lesson.IsPublished
                 && !v.Lesson.IsDeleted,
             cancellationToken);
+
+    public Task<LessonVideo?> GetPublicByPublicIdAsync(string publicId, CancellationToken cancellationToken = default) =>
+        context.LessonVideos
+            .AsNoTracking()
+            .Include(v => v.Lesson)
+                .ThenInclude(l => l!.Course)
+            .FirstOrDefaultAsync(
+                v => v.PublicId == publicId
+                    && v.IsPublished
+                    && v.Lesson!.IsPublished
+                    && !v.Lesson.IsDeleted
+                    && v.Lesson.Course!.Status == CourseStatus.Published
+                    && !v.Lesson.Course.IsDeleted,
+                cancellationToken);
 
     public void Add(LessonVideo video) => context.LessonVideos.Add(video);
 

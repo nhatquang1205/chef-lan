@@ -7,7 +7,8 @@ public sealed record LessonRequest(
     string? Description,
     string? Recipes,
     string? ResourcesUrl,
-    bool IsPublished = true);
+    bool IsPublished = true,
+    decimal? PriceVnd = null);
 
 public sealed record LessonOrderRequest(IReadOnlyList<long> LessonIds);
 

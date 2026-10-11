@@ -13,6 +13,7 @@ public static class LessonMappings
         Title = lesson.Title,
         SortOrder = lesson.SortOrder,
         IsPublished = lesson.IsPublished,
+        PriceVnd = lesson.PriceVnd,
         VideoCount = lesson.VideoCount,
         DurationSeconds = lesson.DurationSeconds,
     };
@@ -28,6 +29,7 @@ public static class LessonMappings
         ResourcesUrl = lesson.ResourcesUrl,
         SortOrder = lesson.SortOrder,
         IsPublished = lesson.IsPublished,
+        PriceVnd = lesson.PriceVnd,
         VideoCount = lesson.VideoCount,
         DurationSeconds = lesson.DurationSeconds,
     };
@@ -36,6 +38,7 @@ public static class LessonMappings
     {
         Id = video.Id,
         LessonId = video.LessonId,
+        PublicId = video.PublicId,
         SortOrder = video.SortOrder,
         Title = video.Title,
         Description = video.Description,

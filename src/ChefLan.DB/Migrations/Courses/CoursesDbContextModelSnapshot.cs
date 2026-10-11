@@ -502,6 +502,12 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasDefaultValue(true)
                         .HasColumnName("is_published");
 
+                    b.Property<decimal?>("PriceVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("price_vnd")
+                        .HasComment("Price to buy this lesson alone. NULL = not sold separately, only through the course");
+
                     b.Property<string>("Recipes")
                         .HasColumnType("text")
                         .HasColumnName("recipes")
@@ -565,9 +571,138 @@ namespace ChefLan.DB.Migrations.Courses
                         {
                             t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
 
+                            t.HasCheckConstraint("ck_lessons_price_non_negative", "price_vnd IS NULL OR price_vnd >= 0");
+
                             t.HasCheckConstraint("ck_lessons_sort_order_non_negative", "sort_order >= 0");
 
                             t.HasCheckConstraint("ck_lessons_video_count_non_negative", "video_count >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.LessonEnrollment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AccessGrantedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("access_granted_at");
+
+                    b.Property<decimal?>("AmountPaidVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("amount_paid_vnd")
+                        .HasComment("What was actually received — a snapshot, not the current lesson price");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(3)")
+                        .HasDefaultValue("VND")
+                        .HasColumnName("currency");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("customer_id");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("expires_at")
+                        .HasComment("NULL means lifetime. Snapshotted from the lesson's course at grant time.");
+
+                    b.Property<long?>("GrantedByStaffId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("granted_by_staff_id")
+                        .HasComment("identity.users.id — by id only, no FK, so courses does not depend on identity");
+
+                    b.Property<bool>("IsPaid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_paid");
+
+                    b.Property<long>("LessonId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("lesson_id");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("PaymentNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("payment_note");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("payment_reference");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("source")
+                        .HasComment("1=AdminGrant, 2=FacebookMigration, 3=OnlineCheckout");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("status")
+                        .HasComment("1=Pending, 2=Active, 3=Expired, 4=Revoked");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lesson_enrollments");
+
+                    b.HasIndex("CustomerId", "LessonId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_lesson_enrollments_customer_id_lesson_id");
+
+                    b.HasIndex("CustomerId", "Status")
+                        .HasDatabaseName("ix_lesson_enrollments_customer_id_status");
+
+                    b.HasIndex("LessonId", "Status")
+                        .HasDatabaseName("ix_lesson_enrollments_lesson_id_status");
+
+                    b.ToTable("lesson_enrollments", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_lesson_enrollments_active_has_grant_date", "status <> 2 OR access_granted_at IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_lesson_enrollments_amount_non_negative", "amount_paid_vnd IS NULL OR amount_paid_vnd >= 0");
+
+                            t.HasCheckConstraint("ck_lesson_enrollments_paid_has_date", "is_paid = false OR paid_at IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_lesson_enrollments_source", "source IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("ck_lesson_enrollments_status", "status IN (1, 2, 3, 4)");
                         });
                 });
 
@@ -646,6 +781,15 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnName("provider")
                         .HasComment("0=None, 1=YouTube, 2=Vimeo, 3=Cdn, 4=Facebook, 5=Bunny");
 
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("public_id")
+                        .HasDefaultValueSql("left(replace(gen_random_uuid()::text, '-', ''), 16)")
+                        .HasComment("Opaque id for public URLs and the public API; never the integer id or the Bunny GUID");
+
                     b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -682,6 +826,11 @@ namespace ChefLan.DB.Migrations.Courses
 
                     b.HasKey("Id")
                         .HasName("pk_lesson_videos");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_lesson_videos_public_id")
+                        .HasFilter("is_deleted = false");
 
                     b.HasIndex("LessonId", "SortOrder")
                         .HasDatabaseName("ix_lesson_videos_lesson_id_sort_order")
@@ -1124,6 +1273,27 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasConstraintName("fk_lessons_courses_course_id");
 
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.LessonEnrollment", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Customers.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lesson_enrollments_customers_customer_id");
+
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lesson_enrollments_lessons_lesson_id");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.LessonVideo", b =>

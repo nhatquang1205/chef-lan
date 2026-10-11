@@ -12,6 +12,8 @@ namespace ChefLan.Infrastructure.Services.Video;
 /// </summary>
 public sealed class PassthroughVideoLinkResolver : IVideoLinkResolver
 {
+    public TimeSpan? LinkLifetime => null;
+
     public ValueTask<string?> ResolveAsync(
         LessonVideo video,
         bool hasFullAccess,

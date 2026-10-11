@@ -16,6 +16,9 @@ public sealed record LessonAdminListItemResponse
 
     public required bool IsPublished { get; init; }
 
+    /// <summary>Price to buy this lesson alone; null = not sold separately.</summary>
+    public decimal? PriceVnd { get; init; }
+
     public required int VideoCount { get; init; }
 
     public required int DurationSeconds { get; init; }
@@ -42,6 +45,9 @@ public sealed record LessonAdminDetailResponse
 
     public required bool IsPublished { get; init; }
 
+    /// <summary>Price to buy this lesson alone; null = not sold separately.</summary>
+    public decimal? PriceVnd { get; init; }
+
     public required int VideoCount { get; init; }
 
     public required int DurationSeconds { get; init; }
@@ -52,6 +58,9 @@ public sealed record LessonVideoAdminResponse
     public required long Id { get; init; }
 
     public required long LessonId { get; init; }
+
+    /// <summary>The opaque id the public site uses for this video.</summary>
+    public required string PublicId { get; init; }
 
     public required int SortOrder { get; init; }
 

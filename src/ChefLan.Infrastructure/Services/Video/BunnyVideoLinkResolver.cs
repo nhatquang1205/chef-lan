@@ -32,6 +32,8 @@ internal sealed class BunnyVideoLinkResolver(
 {
     private readonly BunnyStreamOptions _options = options.Value;
 
+    public TimeSpan? LinkLifetime => TimeSpan.FromSeconds(_options.TokenLifetimeSeconds);
+
     public ValueTask<string?> ResolveAsync(
         LessonVideo video,
         bool hasFullAccess,

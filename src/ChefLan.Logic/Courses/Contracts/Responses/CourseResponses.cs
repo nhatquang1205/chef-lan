@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using ChefLan.Domain.Enums;
 
 namespace ChefLan.Logic.Courses.Contracts.Responses;
@@ -105,12 +104,18 @@ public sealed record LessonOutlineResponse
 
     public required int DurationSeconds { get; init; }
 
+    /// <summary>What this lesson costs on its own; null = only available through the course.</summary>
+    public decimal? PriceVnd { get; init; }
+
+    public string? PriceDisplay { get; init; }
+
     public required IReadOnlyList<LessonVideoOutlineResponse> Videos { get; init; }
 }
 
 public sealed record LessonVideoOutlineResponse
 {
-    public required long Id { get; init; }
+    /// <summary>Opaque public id: what the watch page URL uses. The integer id is never public.</summary>
+    public required string PublicId { get; init; }
 
     public required string Title { get; init; }
 
@@ -128,7 +133,6 @@ public sealed record LessonVideoOutlineResponse
     /// </summary>
     public int? FreeTillSeconds { get; init; }
 
-    /// <summary>Signed, and only for free videos. Omitted entirely when the caller may not watch.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Url { get; init; }
+    // No URL here. A playable link is minted fresh, when someone opens the watch page, by
+    // GET /api/v1/videos/{publicId}/playback — which is also where entitlement is decided.
 }

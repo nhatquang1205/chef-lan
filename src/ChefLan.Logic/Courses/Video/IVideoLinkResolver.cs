@@ -16,6 +16,12 @@ namespace ChefLan.Logic.Courses.Video;
 public interface IVideoLinkResolver
 {
     /// <summary>
+    /// How long a link from <see cref="ResolveAsync"/> stays valid, or null when links do not expire
+    /// (the unsigned local fallback). The playback endpoint reports it as <c>expiresAt</c>.
+    /// </summary>
+    TimeSpan? LinkLifetime { get; }
+
+    /// <summary>
     /// Returns a playable URL, or <c>null</c> when the caller is not entitled to one.
     ///
     /// <para>

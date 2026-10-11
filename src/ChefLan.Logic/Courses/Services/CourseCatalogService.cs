@@ -6,7 +6,6 @@ using ChefLan.Logic.Courses.Contracts.Responses;
 using ChefLan.Logic.Courses.Errors;
 using ChefLan.Logic.Courses.Interfaces;
 using ChefLan.Logic.Courses.Mapping;
-using ChefLan.Logic.Courses.Video;
 
 namespace ChefLan.Logic.Courses.Services;
 
@@ -14,8 +13,7 @@ namespace ChefLan.Logic.Courses.Services;
 /// internal sealed: the API cannot resolve this by name, only through
 /// <see cref="ICourseCatalogService"/> registered by <see cref="CoursesModule"/>.
 /// </summary>
-internal sealed class CourseCatalogService(ICourseRepository courses, IVideoLinkResolver videoLinks)
-    : ICourseCatalogService
+internal sealed class CourseCatalogService(ICourseRepository courses) : ICourseCatalogService
 {
     public async Task<PagedResult<CourseListItemResponse>> ListPublishedAsync(
         CourseListQuery query,
@@ -42,43 +40,29 @@ internal sealed class CourseCatalogService(ICourseRepository courses, IVideoLink
             return CourseErrors.NotFound(slug);
         }
 
-        var outline = new List<LessonOutlineResponse>();
-
-        foreach (var lesson in course.Lessons)
+        // The outline carries no playable links: a link is minted per play by the playback endpoint, which
+        // is also where entitlement is decided. Free videos are identified by IsFree / FreeTillSeconds.
+        var outline = course.Lessons.Select(lesson => new LessonOutlineResponse
         {
-            var videoOutline = new List<LessonVideoOutlineResponse>();
-
-            foreach (var video in lesson.Videos)
+            Id = lesson.Id,
+            Slug = lesson.Slug,
+            Title = lesson.Title,
+            Description = lesson.Description,
+            SortOrder = lesson.SortOrder,
+            DurationSeconds = lesson.DurationSeconds,
+            PriceVnd = lesson.PriceVnd,
+            PriceDisplay = lesson.PriceVnd is { } price ? Vnd.ToDisplay(price) : null,
+            Videos = lesson.Videos.Select(video => new LessonVideoOutlineResponse
             {
-                // Entitlement is the resolver's decision, not ours: with no enrollment gating
-                // yet, hasFullAccess is always false, so only free videos get a URL.
-                var url = await videoLinks.ResolveAsync(
-                    video, hasFullAccess: false, customerId, cancellationToken);
-
-                videoOutline.Add(new LessonVideoOutlineResponse
-                {
-                    Id = video.Id,
-                    Title = video.Title,
-                    Description = video.Description,
-                    ThumbnailUrl = video.ThumbnailUrl,
-                    DurationSeconds = video.DurationSeconds,
-                    IsFree = video.IsFree,
-                    FreeTillSeconds = video.IsFree ? video.FreeTillSeconds : null,
-                    Url = url,
-                });
-            }
-
-            outline.Add(new LessonOutlineResponse
-            {
-                Id = lesson.Id,
-                Slug = lesson.Slug,
-                Title = lesson.Title,
-                Description = lesson.Description,
-                SortOrder = lesson.SortOrder,
-                DurationSeconds = lesson.DurationSeconds,
-                Videos = videoOutline,
-            });
-        }
+                PublicId = video.PublicId,
+                Title = video.Title,
+                Description = video.Description,
+                ThumbnailUrl = video.ThumbnailUrl,
+                DurationSeconds = video.DurationSeconds,
+                IsFree = video.IsFree,
+                FreeTillSeconds = video.IsFree ? video.FreeTillSeconds : null,
+            }).ToList(),
+        }).ToList();
 
         var summary = course.ToListItemResponse();
 

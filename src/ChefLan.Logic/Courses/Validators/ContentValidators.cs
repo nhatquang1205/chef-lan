@@ -66,6 +66,14 @@ internal sealed class LessonRequestValidator : AbstractValidator<LessonRequest>
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Recipes).MaximumLength(100_000);
         RuleFor(x => x.ResourcesUrl).MaximumLength(1000).MustBeHttpUrl();
+
+        // Null = not sold separately. When set it must be whole dong: Postgres numeric(12,0) rounds a
+        // fraction instead of rejecting it, so this is the only place 150000.50 is caught.
+        When(x => x.PriceVnd is not null, () =>
+            RuleFor(x => x.PriceVnd!.Value)
+                .Must(Vnd.IsValid).WithMessage("'Price Vnd' must be a whole, non-negative number of dong.")
+                .LessThan(1_000_000_000_000m)
+                .OverridePropertyName(nameof(LessonRequest.PriceVnd)));
     }
 }
 

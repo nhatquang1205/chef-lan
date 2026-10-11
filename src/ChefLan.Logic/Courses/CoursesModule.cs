@@ -20,6 +20,8 @@ public static class CoursesModule
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<ILessonVideoService, LessonVideoService>();
         services.AddScoped<IMediaUploadService, MediaUploadService>();
+        services.AddScoped<IPlaybackService, PlaybackService>();
+        services.AddScoped<IEnrollmentService, EnrollmentService>();
 
         // IVideoLinkResolver is a PORT — ChefLan.Infrastructure picks the implementation.
 
