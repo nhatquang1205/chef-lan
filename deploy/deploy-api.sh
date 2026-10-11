@@ -4,7 +4,7 @@
 #   IMAGE_TAG=<git-sha> bash deploy-api.sh
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-$HOME/chef-lan-api}"
+APP_DIR="${APP_DIR:-$HOME/chef-lan}"
 PG_CONTAINER="${PG_CONTAINER:-postgres}"
 DB_NAME="${DB_NAME:-cheflan}"
 DB_USER="${DB_USER:-cheflan}"

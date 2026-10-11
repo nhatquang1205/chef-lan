@@ -1,4 +1,4 @@
-# Production API. Lives on the VPS in ~/chef-lan-api next to a `.env` (never committed).
+# Production API. Lives on the VPS in ~/chef-lan next to a `.env` (never committed).
 # The image comes from GHCR; IMAGE_TAG is set by deploy-api.sh (the git sha being deployed).
 name: cheflan
 

@@ -30,7 +30,7 @@ owner). If the first deploy ever fails on that line, run `CREATE EXTENSION citex
 
 ### 2. The `.env` file
 
-Create `~/chef-lan-api/.env` (mode 600) with:
+Create `~/chef-lan/.env` (mode 600) with:
 
 ```
 DB_PASSWORD=<the cheflan role's password>
@@ -82,6 +82,6 @@ settings -> Change visibility). The image holds no secrets, and then the VPS pul
 
 | | |
 |---|---|
-| Logs | `docker compose -f ~/chef-lan-api/docker-compose.prod.yml logs -f api` |
-| Roll back | `cd ~/chef-lan-api && IMAGE_TAG=$(cat .last-good-tag) bash deploy-api.sh` (database changes are forward-only: keep migrations backwards-compatible for one release) |
+| Logs | `docker compose -f ~/chef-lan/docker-compose.prod.yml logs -f api` |
+| Roll back | `cd ~/chef-lan && IMAGE_TAG=$(cat .last-good-tag) bash deploy-api.sh` (database changes are forward-only: keep migrations backwards-compatible for one release) |
 | Backup | none yet - set up a nightly `docker exec postgres pg_dump -U cheflan cheflan` before real customers arrive |
