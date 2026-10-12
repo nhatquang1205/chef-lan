@@ -173,5 +173,6 @@ internal sealed class LessonService(
         lesson.ResourcesUrl = SlugAllocator.Clean(request.ResourcesUrl);
         lesson.IsPublished = request.IsPublished;
         lesson.PriceVnd = request.PriceVnd;
+        lesson.IncludedInCourse = request.IncludedInCourse;
     }
 }

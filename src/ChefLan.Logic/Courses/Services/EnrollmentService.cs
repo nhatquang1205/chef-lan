@@ -188,6 +188,44 @@ internal sealed class EnrollmentService(
             lessonRows.Select(e => ToResponse(e, e.Lesson?.Title, e.Lesson?.CourseId)).ToList());
     }
 
+    public async Task<IReadOnlyList<MyCourseResponse>> ListMyCoursesAsync(
+        long customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var (courseRows, lessonRows) = await enrollments.ListActiveForCustomerAsync(customerId, clock.UtcNow, cancellationToken);
+
+        var courseIds = courseRows.Select(e => e.CourseId)
+            .Concat(lessonRows.Select(e => e.Lesson!.CourseId))
+            .Distinct();
+
+        return courseIds
+            .Select(courseId =>
+            {
+                var whole = courseRows.FirstOrDefault(e => e.CourseId == courseId);
+                var owned = lessonRows.Where(e => e.Lesson!.CourseId == courseId).ToList();
+                var course = whole?.Course ?? owned[0].Lesson!.Course!;
+
+                return (
+                    LastGrant: owned.Select(e => e.AccessGrantedAt).Append(whole?.AccessGrantedAt).Max(),
+                    Item: new MyCourseResponse
+                    {
+                        CourseId = courseId,
+                        Slug = course.Slug,
+                        Title = course.Title,
+                        ThumbnailUrl = course.ThumbnailUrl,
+                        HasCourseAccess = whole is not null,
+                        CourseExpiresAt = whole?.ExpiresAt,
+                        Lessons = owned
+                            .OrderBy(e => e.Lesson!.SortOrder)
+                            .Select(e => new MyLessonResponse(e.LessonId, e.Lesson!.Title, e.ExpiresAt))
+                            .ToList(),
+                    });
+            })
+            .OrderByDescending(x => x.LastGrant)
+            .Select(x => x.Item)
+            .ToList();
+    }
+
     public async Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
         string courseSlug,
         long customerId,

@@ -25,6 +25,12 @@ public class Lesson : AuditableSoftDeletableEntity, IHasRowVersion
     public bool IsPublished { get; set; } = true;
 
     /// <summary>
+    /// True: part of the course price, so a course enrollment unlocks it. False: an add-on, sold only
+    /// on its own (it then requires <see cref="PriceVnd"/>) and unlocked only by a <see cref="LessonEnrollment"/>.
+    /// </summary>
+    public bool IncludedInCourse { get; set; } = true;
+
+    /// <summary>
     /// Price to buy THIS lesson on its own, in VND. Null means the lesson is not sold separately — it is
     /// only available through the course. Owning the course always includes every lesson; owning a
     /// lesson includes only that lesson (see <see cref="LessonEnrollment"/>).

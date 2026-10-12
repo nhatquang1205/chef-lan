@@ -109,6 +109,9 @@ public sealed record LessonOutlineResponse
 
     public string? PriceDisplay { get; init; }
 
+    /// <summary>False = add-on: not covered by the course price, bought separately.</summary>
+    public required bool IncludedInCourse { get; init; }
+
     public required IReadOnlyList<LessonVideoOutlineResponse> Videos { get; init; }
 }
 

@@ -55,3 +55,19 @@ The API is what enforces access; the overlay only changes which buttons show.
 - an admin UI (grants are curl/Postman)
 - staff tokens on public endpoints: an admin signed in on the web still sees paid videos as locked
 - crediting lesson purchases toward a later course purchase
+
+## Add-on lessons (`lessons.included_in_course`)
+
+A lesson is either part of the course price (`included_in_course = true`, the default) or an **add-on**
+(`false`): sold only on its own. Rules:
+
+- A course enrollment unlocks only included lessons. An add-on needs an active `lesson_enrollments` row
+  (`IEnrollmentRepository.HasAccessAsync` checks the flag on the course branch).
+- An add-on must have a price (`ck_lessons_addon_has_price`, plus a validator 400). An included lesson may
+  still carry a price and be sold alone, as before.
+- `courses.lesson_count` and `total_duration_seconds` count included, published lessons only. Publishing a
+  course requires at least one published included lesson.
+- Access period for an add-on grant is the course's `access_duration_days`, as for any lesson grant.
+- Flipping an existing lesson to add-on removes it from people who bought the course; flipping it back gives
+  it to every course buyer. The PUT does this without a warning.
+- The public outline lists add-ons with `includedInCourse: false`; the course page shows them in their own group.

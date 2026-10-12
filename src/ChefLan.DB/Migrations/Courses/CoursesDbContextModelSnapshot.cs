@@ -490,6 +490,13 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnName("duration_seconds")
                         .HasComment("Denormalized sum of published, non-deleted lesson_videos durations");
 
+                    b.Property<bool>("IncludedInCourse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("included_in_course")
+                        .HasComment("true = part of the course price; false = add-on, bought separately (requires price_vnd)");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -569,6 +576,8 @@ namespace ChefLan.DB.Migrations.Courses
 
                     b.ToTable("lessons", "courses", t =>
                         {
+                            t.HasCheckConstraint("ck_lessons_addon_has_price", "included_in_course OR price_vnd IS NOT NULL");
+
                             t.HasCheckConstraint("ck_lessons_duration_non_negative", "duration_seconds >= 0");
 
                             t.HasCheckConstraint("ck_lessons_price_non_negative", "price_vnd IS NULL OR price_vnd >= 0");

@@ -21,12 +21,13 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
         long lessonId,
         DateTime utcNow,
         CancellationToken cancellationToken = default) =>
-        await context.Enrollments.AnyAsync(
-            e => e.CustomerId == customerId
-                && e.CourseId == courseId
-                && e.Status == EnrollmentStatus.Active
-                && (e.ExpiresAt == null || e.ExpiresAt > utcNow),
-            cancellationToken)
+        (await context.Lessons.AnyAsync(l => l.Id == lessonId && l.IncludedInCourse, cancellationToken)
+            && await context.Enrollments.AnyAsync(
+                e => e.CustomerId == customerId
+                    && e.CourseId == courseId
+                    && e.Status == EnrollmentStatus.Active
+                    && (e.ExpiresAt == null || e.ExpiresAt > utcNow),
+                cancellationToken))
         || await context.LessonEnrollments.AnyAsync(
             e => e.CustomerId == customerId
                 && e.LessonId == lessonId
@@ -100,6 +101,32 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
             .Include(e => e.Lesson)
             .Where(e => e.CustomerId == customerId)
             .OrderByDescending(e => e.Id)
+            .ToListAsync(cancellationToken);
+
+        return (courses, lessons);
+    }
+
+    public async Task<(IReadOnlyList<Enrollment> Courses, IReadOnlyList<LessonEnrollment> Lessons)> ListActiveForCustomerAsync(
+        long customerId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        var courses = await context.Enrollments
+            .AsNoTracking()
+            .Include(e => e.Course)
+            .Where(e => e.CustomerId == customerId
+                && e.Status == EnrollmentStatus.Active
+                && (e.ExpiresAt == null || e.ExpiresAt > utcNow)
+                && e.Course!.Status == CourseStatus.Published)
+            .ToListAsync(cancellationToken);
+
+        var lessons = await context.LessonEnrollments
+            .AsNoTracking()
+            .Include(e => e.Lesson!).ThenInclude(l => l.Course)
+            .Where(e => e.CustomerId == customerId
+                && e.Status == EnrollmentStatus.Active
+                && (e.ExpiresAt == null || e.ExpiresAt > utcNow)
+                && e.Lesson!.Course!.Status == CourseStatus.Published)
             .ToListAsync(cancellationToken);
 
         return (courses, lessons);

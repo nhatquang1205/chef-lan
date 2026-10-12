@@ -22,6 +22,9 @@ public interface IEnrollmentService
 
     Task<Result<CustomerAccessResponse>> GetCustomerAccessAsync(long customerId, CancellationToken cancellationToken = default);
 
+    /// <summary>The signed-in customer's library: published courses they own whole or in part, newest grant first.</summary>
+    Task<IReadOnlyList<MyCourseResponse>> ListMyCoursesAsync(long customerId, CancellationToken cancellationToken = default);
+
     /// <summary>For a signed-in customer: whole-course ownership and owned lessons for one published course.</summary>
     Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
         string courseSlug, long customerId, CancellationToken cancellationToken = default);

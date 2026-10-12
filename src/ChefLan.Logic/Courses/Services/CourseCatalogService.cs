@@ -50,6 +50,7 @@ internal sealed class CourseCatalogService(ICourseRepository courses) : ICourseC
             Description = lesson.Description,
             SortOrder = lesson.SortOrder,
             DurationSeconds = lesson.DurationSeconds,
+            IncludedInCourse = lesson.IncludedInCourse,
             PriceVnd = lesson.PriceVnd,
             PriceDisplay = lesson.PriceVnd is { } price ? Vnd.ToDisplay(price) : null,
             Videos = lesson.Videos.Select(video => new LessonVideoOutlineResponse

@@ -14,6 +14,7 @@ public static class LessonMappings
         SortOrder = lesson.SortOrder,
         IsPublished = lesson.IsPublished,
         PriceVnd = lesson.PriceVnd,
+        IncludedInCourse = lesson.IncludedInCourse,
         VideoCount = lesson.VideoCount,
         DurationSeconds = lesson.DurationSeconds,
     };
@@ -30,6 +31,7 @@ public static class LessonMappings
         SortOrder = lesson.SortOrder,
         IsPublished = lesson.IsPublished,
         PriceVnd = lesson.PriceVnd,
+        IncludedInCourse = lesson.IncludedInCourse,
         VideoCount = lesson.VideoCount,
         DurationSeconds = lesson.DurationSeconds,
     };

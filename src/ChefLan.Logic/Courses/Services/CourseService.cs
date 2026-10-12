@@ -146,7 +146,7 @@ internal sealed class CourseService(
             return Result.Success();
         }
 
-        if ((await lessons.ListForCourseAsync(id, includeUnpublished: false, cancellationToken)).Count == 0)
+        if (!(await lessons.ListForCourseAsync(id, includeUnpublished: false, cancellationToken)).Any(l => l.IncludedInCourse))
         {
             return Result.Failure(CourseErrors.NoPublishedLesson);
         }

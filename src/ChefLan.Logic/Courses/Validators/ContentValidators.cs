@@ -69,6 +69,10 @@ internal sealed class LessonRequestValidator : AbstractValidator<LessonRequest>
 
         // Null = not sold separately. When set it must be whole dong: Postgres numeric(12,0) rounds a
         // fraction instead of rejecting it, so this is the only place 150000.50 is caught.
+        RuleFor(x => x.PriceVnd)
+            .NotNull().When(x => !x.IncludedInCourse)
+            .WithMessage("An add-on lesson (not included in the course) needs a price.");
+
         When(x => x.PriceVnd is not null, () =>
             RuleFor(x => x.PriceVnd!.Value)
                 .Must(Vnd.IsValid).WithMessage("'Price Vnd' must be a whole, non-negative number of dong.")

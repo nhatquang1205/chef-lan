@@ -341,6 +341,10 @@ customer needs an active, unexpired row in either, checked by `IEnrollmentReposi
 `/api/v1/admins/enrollments` and `/lesson-enrollments` (no checkout exists). `ICustomerDirectory` is the
 Courses domain's own port onto customers, so granting never reaches into `Logic.Customers`. A grant that is
 still active is a 409; revoked or expired rows are reactivated.
+**Add-on lessons:** `lessons.included_in_course = false` means the lesson is not part of the course price: a course
+enrollment does not unlock it (only a `lesson_enrollments` row does), it requires a price, and it is excluded from
+`lesson_count` / `total_duration_seconds`. Details in `docs/lesson-access/spec.md`.
+`GET /api/v1/me/courses` (customer only) is the library: published courses owned whole (`hasCourseAccess`, `courseExpiresAt`) or in part (`lessons`), active and unexpired only, newest grant first.
 
 ## Slugs
 

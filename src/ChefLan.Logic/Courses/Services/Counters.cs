@@ -18,7 +18,7 @@ internal static class Counters
 
     public static void Apply(Course course, IEnumerable<Lesson> liveLessons)
     {
-        var published = liveLessons.Where(l => l.IsPublished).ToList();
+        var published = liveLessons.Where(l => l.IsPublished && l.IncludedInCourse).ToList();
         course.LessonCount = published.Count;
         course.TotalDurationSeconds = published.Sum(l => l.DurationSeconds);
     }

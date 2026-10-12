@@ -52,6 +52,15 @@ public interface IEnrollmentRepository
         long customerId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Read-only: the customer's active, unexpired course enrollments (course loaded) and lesson enrollments
+    /// (lesson and its course loaded), limited to published courses. Feeds "my courses".
+    /// </summary>
+    Task<(IReadOnlyList<Enrollment> Courses, IReadOnlyList<LessonEnrollment> Lessons)> ListActiveForCustomerAsync(
+        long customerId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default);
+
     void Add(Enrollment enrollment);
 
     void Add(LessonEnrollment enrollment);

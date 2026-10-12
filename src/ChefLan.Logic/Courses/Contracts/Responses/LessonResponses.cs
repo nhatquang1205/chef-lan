@@ -19,6 +19,9 @@ public sealed record LessonAdminListItemResponse
     /// <summary>Price to buy this lesson alone; null = not sold separately.</summary>
     public decimal? PriceVnd { get; init; }
 
+    /// <summary>False = add-on, bought separately and not covered by the course price.</summary>
+    public required bool IncludedInCourse { get; init; }
+
     public required int VideoCount { get; init; }
 
     public required int DurationSeconds { get; init; }
@@ -47,6 +50,9 @@ public sealed record LessonAdminDetailResponse
 
     /// <summary>Price to buy this lesson alone; null = not sold separately.</summary>
     public decimal? PriceVnd { get; init; }
+
+    /// <summary>False = add-on, bought separately and not covered by the course price.</summary>
+    public required bool IncludedInCourse { get; init; }
 
     public required int VideoCount { get; init; }
 
