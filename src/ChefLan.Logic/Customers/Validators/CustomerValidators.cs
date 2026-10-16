@@ -32,3 +32,21 @@ internal sealed class CustomerLogoutRequestValidator : AbstractValidator<Custome
 {
     public CustomerLogoutRequestValidator() => RuleFor(x => x.RefreshToken).NotEmpty().MaximumLength(200);
 }
+
+internal sealed class CustomerAdminRequestValidator : AbstractValidator<CustomerAdminRequest>
+{
+    public CustomerAdminRequestValidator()
+    {
+        RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(254).When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Phone).MaximumLength(20);
+        RuleFor(x => x.FacebookName).MaximumLength(200);
+        RuleFor(x => x.FacebookProfileUrl)
+            .MaximumLength(500)
+            .Must(u => Uri.TryCreate(u!.Trim(), UriKind.Absolute, out var uri)
+                       && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            .WithMessage("'{PropertyName}' must be an http or https URL.")
+            .When(x => !string.IsNullOrWhiteSpace(x.FacebookProfileUrl));
+        RuleFor(x => x.Note).MaximumLength(2000);
+    }
+}

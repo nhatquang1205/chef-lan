@@ -1,5 +1,6 @@
 using ChefLan.Commons.Pagination;
 using ChefLan.Domain.Customers.Entities;
+using ChefLan.Logic.Customers.Contracts;
 
 namespace ChefLan.Logic.Customers.Interfaces;
 
@@ -13,7 +14,12 @@ public interface ICustomerRepository
 
     Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
 
-    Task<PagedResult<Customer>> ListAsync(PagedRequest request, string? search, CancellationToken cancellationToken = default);
+    /// <summary>Search covers name, email, phone and Facebook name; newest first.</summary>
+    Task<PagedResult<Customer>> ListAsync(
+        PagedRequest request,
+        string? search,
+        CustomerStatus? status,
+        CancellationToken cancellationToken = default);
 
     void Add(Customer customer);
 }

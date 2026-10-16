@@ -42,3 +42,22 @@ POST /api/v1/admins/customers/{id}/reactivate                 -> 204
 - Deactivate → that customer's existing refresh token stops working and login returns `customer.account_inactive`;
   reactivate → login works again.
 - Customer token on these routes → 401. Release build clean.
+
+## Implementation notes
+
+Done. Files: `Logic/Customers/{Contracts/CustomerAdminContracts.cs, Interfaces/ICustomerAdminService.cs, Interfaces/ICustomerAccessCounter.cs, Services/CustomerAdminService.cs}`
+(+ validator, mappings, `ICustomerRepository.ListAsync` now takes `CustomerStatus?`), `Infrastructure/Repositories/Customers/{CustomerRepository.cs, CustomerAccessCounter.cs}`,
+`Courses.API/Controllers/Admin/AdminCustomersController.cs`.
+
+- **Counts kept.** `courseCount`/`lessonCount` come from `ICustomerAccessCounter`, a port owned by Customers and implemented in
+  Infrastructure (which sees both tables), so `Logic.Customers` never references `Logic.Courses`. One grouped query per table per page.
+- **Responses.** List: `PagedResult<{ id, fullName, email?, phone?, facebookName?, status, invitedAt?, activatedAt?, lastLoginAt?, createdAt, courseCount, lessonCount }>`.
+  Detail: `{ id, fullName, email?, phone?, facebookName?, facebookProfileUrl?, note?, isActive, status, invitedAt?, inviteExpiresAt?, activatedAt?, lastLoginAt?, createdAt }`.
+  `status` is a string enum. Query params: `q`, `status`, `page`, `pageSize`.
+- **Status before B3.** There are no invite expiry columns yet, so `Invited` = no password and `invitedAt` set, `InviteExpired` matches nothing
+  and `inviteExpiresAt` is always null. B3 must refine `StatusOf` (Logic mapping) and the matching predicate in `CustomerRepository.ListAsync` together.
+- Email is trimmed and lowercased; blank email becomes null. Clearing a pending invite on email change is B3 (nothing to clear yet).
+  `sendInvite` is accepted and ignored. Deactivate/reactivate are idempotent (204 either way); deactivate revokes all refresh tokens.
+- Verified by curl on a local API: create with/without email, duplicate (any case) 409, validation 400, search by phone/Facebook name,
+  `%` search matches nothing, `NotInvited`/`Inactive` filters, 404s, anonymous and customer token 401, deactivate kills the refresh token and login
+  returns `customer.account_inactive`, reactivate restores login. Counts were not exercised with a non-zero grant.

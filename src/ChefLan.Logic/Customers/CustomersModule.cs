@@ -15,6 +15,7 @@ public static class CustomersModule
     public static IServiceCollection AddCustomersModule(this IServiceCollection services)
     {
         services.AddScoped<ICustomerAuthService, CustomerAuthService>();
+        services.AddScoped<ICustomerAdminService, CustomerAdminService>();
         services.AddValidatorsFromAssemblyContaining<ICustomerAuthService>(
             includeInternalTypes: true,
             filter: f => f.ValidatorType.Namespace == typeof(CustomersModule).Namespace + ".Validators");
