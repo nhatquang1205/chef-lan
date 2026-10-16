@@ -60,4 +60,20 @@ public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUse
 
         return (await catalog.GetPublishedBySlugAsync(slug, customerId, cancellationToken)).ToActionResult(this);
     }
+
+    /// <summary>
+    /// The lesson page: outline, video list and, for a customer who owns the lesson, the recipe.
+    /// The answer depends on who asks, so it is never cached.
+    /// </summary>
+    [HttpGet("{slug}/lessons/{lessonSlug}")]
+    [ProducesResponseType(typeof(LessonPageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LessonPageResponse>> GetLesson(string slug, string lessonSlug, CancellationToken cancellationToken)
+    {
+        long? customerId = currentUser.TryGetCustomerId(out var id) ? id : null;
+
+        Response.Headers.CacheControl = "private, no-store";
+
+        return (await catalog.GetPublishedLessonAsync(slug, lessonSlug, customerId, cancellationToken)).ToActionResult(this);
+    }
 }

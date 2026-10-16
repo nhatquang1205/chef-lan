@@ -20,4 +20,14 @@ public interface ICourseCatalogService
         string slug,
         long? customerId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One published lesson of a published course, for the lesson page. The recipe is returned only to a
+    /// customer with access (course enrollment for an included lesson, or a lesson enrollment).
+    /// </summary>
+    Task<Result<LessonPageResponse>> GetPublishedLessonAsync(
+        string courseSlug,
+        string lessonSlug,
+        long? customerId,
+        CancellationToken cancellationToken = default);
 }

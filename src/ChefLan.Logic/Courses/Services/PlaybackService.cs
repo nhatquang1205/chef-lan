@@ -58,6 +58,7 @@ internal sealed class PlaybackService(
             CourseSlug = video.Lesson!.Course!.Slug,
             CourseTitle = video.Lesson.Course.Title,
             LessonTitle = video.Lesson.Title,
+            LessonSlug = video.Lesson.Slug,
         };
     }
 }

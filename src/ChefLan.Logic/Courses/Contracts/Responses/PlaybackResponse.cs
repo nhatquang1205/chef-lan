@@ -33,4 +33,6 @@ public sealed record PlaybackResponse
     public required string CourseTitle { get; init; }
 
     public required string LessonTitle { get; init; }
+
+    public required string LessonSlug { get; init; }
 }

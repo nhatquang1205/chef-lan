@@ -486,3 +486,6 @@ artifacts/
 # appsettings.Local.example.json is the committed template.
 appsettings.Local.json
 **/appsettings.Local.json
+
+# DB Dev connection string (VPS Postgres through the SSH tunnel). Contains a password: never commit.
+.devdb

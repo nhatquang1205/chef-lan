@@ -344,6 +344,9 @@ still active is a 409; revoked or expired rows are reactivated.
 **Add-on lessons:** `lessons.included_in_course = false` means the lesson is not part of the course price: a course
 enrollment does not unlock it (only a `lesson_enrollments` row does), it requires a price, and it is excluded from
 `lesson_count` / `total_duration_seconds`. Details in `docs/lesson-access/spec.md`.
+`GET /api/v1/courses/{slug}/lessons/{lessonSlug}` is the public lesson page (outline, videos, prev/next); the
+**recipe is returned only to a customer with access** (`recipesLocked` tells the page there is one), so the answer is
+`Cache-Control: private, no-store`. Playback responses carry `lessonSlug` so old watch links can redirect there.
 `GET /api/v1/me/courses` (customer only) is the library: published courses owned whole (`hasCourseAccess`, `courseExpiresAt`) or in part (`lessons`), active and unexpired only, newest grant first.
 
 ## Slugs
