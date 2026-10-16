@@ -53,6 +53,7 @@ public static class InfrastructureServiceCollectionExtensions
         // customers (buyers)
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerRefreshTokenRepository, CustomerRefreshTokenRepository>();
+        services.AddScoped<ICustomerAccessCounter, CustomerAccessCounter>();
 
         // courses
         services.AddScoped<ICourseRepository, CourseRepository>();
@@ -68,19 +69,26 @@ public static class InfrastructureServiceCollectionExtensions
         IConfiguration configuration,
         IHostEnvironment environment)
     {
-        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.AddOptions<SmtpOptions>()
+            .Bind(configuration.GetSection(SmtpOptions.SectionName))
+            .Validate(
+                o => string.IsNullOrWhiteSpace(o.Host)
+                    || (!string.IsNullOrWhiteSpace(o.Username) && !string.IsNullOrWhiteSpace(o.Password) && !string.IsNullOrWhiteSpace(o.FromAddress)),
+                "Smtp:Host is set, so Smtp:Username, Smtp:Password and Smtp:FromAddress are required.")
+            .ValidateOnStart();
         services.Configure<B2StorageOptions>(configuration.GetSection(B2StorageOptions.SectionName));
         services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
 
-        // Development logs instead of sending. Production MUST configure SMTP — a silently
-        // dropped invite is indistinguishable from a broken invite flow.
-        if (environment.IsDevelopment())
+        // Real sending whenever an SMTP server is configured, in any environment (so Gmail can be tested
+        // locally). Without one, mails are only logged; outside Development that logs a warning per mail,
+        // because a silently dropped invite looks exactly like a broken invite flow.
+        if (!string.IsNullOrWhiteSpace(configuration[$"{SmtpOptions.SectionName}:Host"]))
         {
-            services.AddScoped<IEmailSender, LoggingEmailSender>();
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
         }
         else
         {
-            services.AddScoped<IEmailSender, SmtpEmailSender>();
+            services.AddScoped<IEmailSender, LoggingEmailSender>();
         }
 
         // Image storage is Backblaze B2 (S3-compatible, like wish-list); Bunny is video only. Both answer

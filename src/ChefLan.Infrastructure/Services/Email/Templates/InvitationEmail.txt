@@ -1,0 +1,12 @@
+Xin chào {{fullName}},
+
+Cô Lan đã tạo cho bạn một tài khoản trên Bon Bocon để xem các khóa học nấu ăn bạn đã đăng ký.
+Mở liên kết dưới đây để đặt mật khẩu và kích hoạt tài khoản:
+
+{{link}}
+
+Liên kết có hiệu lực đến {{expiresAt}} và chỉ dùng được một lần.
+Nếu bạn không đăng ký khóa học nào của cô Lan, hãy bỏ qua email này.
+
+Cần hỗ trợ? Gọi cô Lan: {{supportPhone}}
+Bon Bocon · 164 Châu Thị Vĩnh Tế, Đà Nẵng

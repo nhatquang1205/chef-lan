@@ -9,7 +9,7 @@ Implementation is split across three repos. Order matters:
 | # | Where | Plan | Status |
 |---|---|---|---|
 | B1 | chef-lan (this repo) | [Real email sending through Gmail](plans/01-email-sending.md) | todo |
-| B2 | chef-lan | [Admin customers API](plans/02-admin-customers-api.md) | todo |
+| B2 | chef-lan | [Admin customers API](plans/02-admin-customers-api.md) | done |
 | B3 | chef-lan | [Invitations: token, mail with logo, activation API](plans/03-invitations-and-activation.md) | todo |
 | W1 | chef-lan-web | `docs/plans/01-invite-only-signup.md`: hide the register link, add the activation page | todo |
 | A* | chef-lan-admin | `docs/plans/10`–`14`: categories, customers, invite, access, logo | todo |

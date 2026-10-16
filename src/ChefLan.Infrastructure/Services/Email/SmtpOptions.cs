@@ -17,5 +17,5 @@ public sealed class SmtpOptions
 
     public string FromAddress { get; set; } = "no-reply@cheflan.local";
 
-    public string FromDisplayName { get; set; } = "Chef Lan";
+    public string FromDisplayName { get; set; } = "Bon Bocon";
 }

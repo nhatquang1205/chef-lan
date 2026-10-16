@@ -79,8 +79,7 @@ inserted in `Program.cs` after the last `appsettings*.json` source.
 
 **Never set `ASPNETCORE_ENVIRONMENT=Local` to pick that file up.** It loads, but
 `IsDevelopment()` becomes false, which silently disables OpenAPI/Scalar, skips the seeder,
-turns off `EnableSensitiveDataLogging`, and swaps `LoggingEmailSender` for the
-unimplemented `SmtpEmailSender`. Keep the environment `Development` and use the file.
+and turns off `EnableSensitiveDataLogging`. Keep the environment `Development` and use the file.
 
 On a server, use **environment variables**, with `__` in place of `:`
 (`Video__Bunny__ApiKey`). They outrank every JSON file, so a stale `appsettings.Local.json`
@@ -348,6 +347,16 @@ enrollment does not unlock it (only a `lesson_enrollments` row does), it require
 **recipe is returned only to a customer with access** (`recipesLocked` tells the page there is one), so the answer is
 `Cache-Control: private, no-store`. Playback responses carry `lessonSlug` so old watch links can redirect there.
 `GET /api/v1/me/courses` (customer only) is the library: published courses owned whole (`hasCourseAccess`, `courseExpiresAt`) or in part (`lessons`), active and unexpired only, newest grant first.
+
+## Email
+
+`IEmailSender` (Logic port) takes an `EmailMessage` (HTML + plain text + inline images referenced as `cid:`).
+`SmtpEmailSender` (MailKit) is used whenever `Smtp:Host` is set, in **any** environment, so Gmail can be tested
+locally with user-secrets; otherwise `LoggingEmailSender` logs the mail (the text body only in Development, since it
+may carry a one-time link; elsewhere just a warning). Production uses Gmail with an app password (`deploy/README.md`,
+"Email setup"). Failures throw `EmailSendException`; nothing is queued or retried. `System.Security.Cryptography.Pkcs`
+is pinned in `Directory.Packages.props` because MimeKit pulls in a vulnerable version: keep the pin until MimeKit
+references a fixed one.
 
 ## Slugs
 

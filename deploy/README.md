@@ -45,6 +45,13 @@ Storage__B2__Bucket=<bucket name>
 Storage__B2__Endpoint=https://s3.<region>.backblazeb2.com
 Storage__B2__KeyId=<application key id>
 Storage__B2__AppKey=<application key>
+# Email (customer invitations): Gmail with an app password - see "Email setup" below
+Smtp__Host=smtp.gmail.com
+Smtp__Port=587
+Smtp__Username=<the gmail address>
+Smtp__Password=<16-character app password, no spaces>
+Smtp__FromAddress=<the same gmail address>
+Smtp__FromDisplayName=Bon Bocon
 
 # FIRST DEPLOY ONLY - remove these three lines afterwards, then redeploy:
 Seed__RunOnStartup=true
@@ -92,6 +99,18 @@ Two services, split by what they are good at (the same split as wish-list for im
 5. Images are small, so uploads go through the API (nginx allows 6 MB on `/api/`).
 
 **Bunny (videos)**: library id and the two keys from the Stream library's dashboard.
+
+**Email setup (Gmail)**
+1. Use the Google account that should send the mails (its address is the sender). Google Account -> Security ->
+   **2-Step Verification** must be on.
+2. Google Account -> Security -> **App passwords** (or https://myaccount.google.com/apppasswords): create one named
+   "Bon Bocon API". Google shows 16 letters once: that is `Smtp__Password` (write it without spaces).
+3. `Smtp__FromAddress` must be that same Gmail address; Gmail rewrites any other sender anyway.
+4. Gmail allows roughly 500 mails a day from one account, plenty for invitations. If a mail lands in spam, mark it
+   "not spam" once from the receiving account.
+
+Without `Smtp__Host` the API does not send mail at all: each mail is only logged with a warning, and invitations
+are never delivered.
 
 Restart the API after editing `.env`. Without the B2 values the image upload endpoints and the
 file form of course create/update answer **503** (not configured); without the Bunny values the video
