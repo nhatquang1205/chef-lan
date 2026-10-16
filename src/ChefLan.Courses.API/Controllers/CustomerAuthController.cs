@@ -103,6 +103,36 @@ public sealed class CustomerAuthController(
             : Result.Failure(asCustomer.Error).ToActionResult(this);
     }
 
+    /// <summary>Who an invitation link is for. 400 <c>customer.invite_invalid</c> for unknown, used or expired links.</summary>
+    [HttpPost("invitations/inspect")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthRefresh)]
+    [ProducesResponseType(typeof(InvitationInfoResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<InvitationInfoResponse>> InspectInvitation(
+        InvitationTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return (await customers.InspectInvitationAsync(request, cancellationToken)).ToActionResult(this);
+    }
+
+    /// <summary>Sets the password from an invitation link and signs the customer in (same answer as login).</summary>
+    [HttpPost("invitations/accept")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.AuthLogin)]
+    [ProducesResponseType(typeof(SessionResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<SessionResponse>> AcceptInvitation(
+        AcceptInvitationRequest request,
+        CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+        var result = await customers.AcceptInvitationAsync(request, HttpContext.GetClientInfo(), cancellationToken);
+
+        return result.IsSuccess
+            ? SessionResponse.From(result.Value)
+            : Result.Failure(result.Error).ToActionResult(this);
+    }
+
     [HttpPost("logout")]
     [Authorize(Policy = ChefLanPolicies.AnyUser)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

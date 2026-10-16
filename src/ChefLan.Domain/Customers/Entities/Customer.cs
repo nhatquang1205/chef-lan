@@ -36,6 +36,11 @@ public class Customer : AuditableSoftDeletableEntity
 
     public DateTime? InvitedAt { get; set; }
 
+    /// <summary>Hash of the pending invitation token (never the token itself). Null = no pending invite.</summary>
+    public string? InviteTokenHash { get; set; }
+
+    public DateTime? InviteExpiresAt { get; set; }
+
     public DateTime? LastLoginAt { get; set; }
 
     public int FailedLoginCount { get; set; }

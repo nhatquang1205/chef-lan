@@ -79,6 +79,16 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<B2StorageOptions>(configuration.GetSection(B2StorageOptions.SectionName));
         services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
 
+        // Links in mails point at the customer website. Required wherever mail is really sent.
+        services.AddOptions<PublicSiteOptions>()
+            .Bind(configuration.GetSection(PublicSiteOptions.SectionName))
+            .Validate(
+                o => string.IsNullOrWhiteSpace(configuration[$"{SmtpOptions.SectionName}:Host"])
+                    || Uri.TryCreate(o.PublicBaseUrl, UriKind.Absolute, out _),
+                "Smtp:Host is set, so Web:PublicBaseUrl (the customer website's origin) is required for links in mails.")
+            .ValidateOnStart();
+        services.AddSingleton<ICustomerEmails, CustomerEmails>();
+
         // Real sending whenever an SMTP server is configured, in any environment (so Gmail can be tested
         // locally). Without one, mails are only logged; outside Development that logs a warning per mail,
         // because a silently dropped invite looks exactly like a broken invite flow.

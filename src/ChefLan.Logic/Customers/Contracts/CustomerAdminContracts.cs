@@ -10,7 +10,7 @@ public enum CustomerStatus
     Inactive = 5,
 }
 
-/// <summary>Create and update share this shape. <c>SendInvite</c> is accepted and ignored until invitations exist.</summary>
+/// <summary>Create and update share this shape. <c>SendInvite</c> only matters on create: invite right after saving.</summary>
 public sealed record CustomerAdminRequest(
     string FullName,
     string? Email,
@@ -50,7 +50,13 @@ public sealed record CustomerAdminDetail(
     DateTime? InviteExpiresAt,
     DateTime? ActivatedAt,
     DateTime? LastLoginAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    /// <summary>Set only on create with <c>sendInvite</c> when the customer was saved but the mail failed.</summary>
+    public string? InviteError { get; init; }
+}
+
+public sealed record CustomerInviteResponse(DateTime InvitedAt, DateTime InviteExpiresAt);
 
 /// <summary>Active, unexpired grants a customer holds.</summary>
 public readonly record struct CustomerAccessCounts(int Courses, int Lessons);

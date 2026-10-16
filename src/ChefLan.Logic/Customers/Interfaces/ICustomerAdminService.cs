@@ -16,6 +16,11 @@ public interface ICustomerAdminService
     Task<Result<CustomerAdminDetail>> UpdateAsync(
         long id, CustomerAdminRequest request, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends (or resends) the invitation mail. A new link replaces the previous one; it is valid for 7 days.
+    /// </summary>
+    Task<Result<CustomerInviteResponse>> InviteAsync(long id, CancellationToken cancellationToken = default);
+
     /// <summary>Idempotent. Also revokes every refresh token the customer holds.</summary>
     Task<Result> DeactivateAsync(long id, CancellationToken cancellationToken = default);
 

@@ -169,6 +169,63 @@ internal sealed class CustomerAuthService(
         return Result.Success();
     }
 
+    public async Task<Result<InvitationInfoResponse>> InspectInvitationAsync(
+        InvitationTokenRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await FindInvitedAsync(request.Token, cancellationToken);
+
+        return customer is null
+            ? CustomerErrors.InviteInvalid
+            : new InvitationInfoResponse(customer.Email!, customer.FullName);
+    }
+
+    /// <summary>
+    /// Sets the first password and signs the customer in. Opening the mailed link proves the mailbox, so the
+    /// email counts as confirmed. The token is cleared, so the link works once.
+    /// </summary>
+    public async Task<Result<CustomerAuthResponse>> AcceptInvitationAsync(
+        AcceptInvitationRequest request,
+        ClientInfo client,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await FindInvitedAsync(request.Token, cancellationToken);
+
+        if (customer is null)
+        {
+            return CustomerErrors.InviteInvalid;
+        }
+
+        var now = clock.UtcNow;
+        customer.PasswordHash = passwordHasher.Hash(request.Password);
+        customer.ActivatedAt = now;
+        customer.EmailConfirmedAt ??= now;
+        customer.InviteTokenHash = null;
+        customer.InviteExpiresAt = null;
+        customer.FailedLoginCount = 0;
+        customer.LockedUntil = null;
+        customer.LastLoginAt = now;
+
+        var response = IssuePair(customer, client, now, out _);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return response;
+    }
+
+    /// <summary>
+    /// The customer a still-valid invitation belongs to, or null. Unknown, used and expired tokens all look the same
+    /// to the caller. Someone who already has a password (activated another way) cannot be re-activated by an old link.
+    /// </summary>
+    private async Task<Customer?> FindInvitedAsync(string token, CancellationToken cancellationToken)
+    {
+        var customer = await customers.GetByInviteTokenHashAsync(OneTimeToken.Hash(token), cancellationToken);
+
+        return customer is { IsActive: true, IsDeleted: false, PasswordHash: null, Email: not null }
+            && customer.InviteExpiresAt > clock.UtcNow
+            ? customer
+            : null;
+    }
+
     public async Task<Result<CustomerResponse>> GetMeAsync(
         long customerId,
         CancellationToken cancellationToken = default)

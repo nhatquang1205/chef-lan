@@ -27,6 +27,7 @@ internal sealed class CustomerRepository(CoursesDbContext context) : ICustomerRe
         PagedRequest request,
         string? search,
         CustomerStatus? status,
+        DateTime utcNow,
         CancellationToken cancellationToken = default)
     {
         var query = context.Customers.AsNoTracking();
@@ -41,14 +42,17 @@ internal sealed class CustomerRepository(CoursesDbContext context) : ICustomerRe
                 || (c.FacebookName != null && EF.Functions.ILike(c.FacebookName, pattern, LikePattern.EscapeCharacter)));
         }
 
-        // Mirrors CustomerMappings.StatusOf. InviteExpired has no data until invitations add expiry columns.
+        // Mirrors CustomerMappings.StatusOf.
         query = status switch
         {
             CustomerStatus.Inactive => query.Where(c => !c.IsActive),
             CustomerStatus.Active => query.Where(c => c.IsActive && (c.PasswordHash != null || c.ActivatedAt != null)),
-            CustomerStatus.Invited => query.Where(c => c.IsActive && c.PasswordHash == null && c.ActivatedAt == null && c.InvitedAt != null),
-            CustomerStatus.NotInvited => query.Where(c => c.IsActive && c.PasswordHash == null && c.ActivatedAt == null && c.InvitedAt == null),
-            CustomerStatus.InviteExpired => query.Where(_ => false),
+            CustomerStatus.Invited => query.Where(c => c.IsActive && c.PasswordHash == null && c.ActivatedAt == null
+                && c.InviteTokenHash != null && c.InviteExpiresAt > utcNow),
+            CustomerStatus.InviteExpired => query.Where(c => c.IsActive && c.PasswordHash == null && c.ActivatedAt == null
+                && c.InviteTokenHash != null && c.InviteExpiresAt <= utcNow),
+            CustomerStatus.NotInvited => query.Where(c => c.IsActive && c.PasswordHash == null && c.ActivatedAt == null
+                && c.InviteTokenHash == null),
             _ => query,
         };
 
@@ -68,6 +72,9 @@ internal sealed class CustomerRepository(CoursesDbContext context) : ICustomerRe
 
         return PagedResult<Customer>.Create(items, request.Page, request.PageSize, total);
     }
+
+    public Task<Customer?> GetByInviteTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        context.Customers.FirstOrDefaultAsync(c => c.InviteTokenHash == tokenHash, cancellationToken);
 
     public void Add(Customer customer) => context.Customers.Add(customer);
 }

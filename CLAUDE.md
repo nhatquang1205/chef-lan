@@ -358,6 +358,20 @@ may carry a one-time link; elsewhere just a warning). Production uses Gmail with
 is pinned in `Directory.Packages.props` because MimeKit pulls in a vulnerable version: keep the pin until MimeKit
 references a fixed one.
 
+## Customer invitations
+
+Spec: `docs/customer-invitations/spec.md`. Staff create customers (`/api/v1/admins/customers`) and invite them
+(`POST /admins/customers/{id}/invite`, or `sendInvite: true` on create). The invite is a one-time token: stored only
+as a hash in `customers.invite_token_hash`, valid 7 days (`invite_expires_at`), replaced by every resend, cleared on
+use and when staff change the email. The mail (`CustomerEmails`, embedded templates + inline logo under
+`Infrastructure/Services/Email/Templates`) links to `{Web:PublicBaseUrl}/activate#token=...` — the token is in the
+**fragment** so it never reaches access logs. The website calls `POST /api/v1/auth/invitations/inspect` and
+`/accept`; accept sets the password, activates the account and returns the normal session. Both answer one code,
+`customer.invite_invalid`, for unknown, used and expired tokens. The mail is sent before the token is saved, so a
+failed send (`502 email.send_failed`) leaves the previous link working. Customer status (`Active`, `Invited`,
+`InviteExpired`, `NotInvited`, `Inactive`) is derived in `CustomerMappings.StatusOf` and mirrored in
+`CustomerRepository.ListAsync`; change both together.
+
 ## Slugs
 
 `VietnameseSlugGenerator` uses an **explicit Vietnamese character map, not Unicode NFD**.

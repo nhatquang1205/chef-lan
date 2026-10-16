@@ -925,6 +925,15 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("character varying(200)")
                         .HasColumnName("full_name");
 
+                    b.Property<DateTime?>("InviteExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("invite_expires_at");
+
+                    b.Property<string>("InviteTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("invite_token_hash");
+
                     b.Property<DateTime?>("InvitedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("invited_at");
@@ -983,6 +992,11 @@ namespace ChefLan.DB.Migrations.Courses
                     b.HasIndex("FullName")
                         .HasDatabaseName("ix_customers_full_name")
                         .HasFilter("is_deleted = false");
+
+                    b.HasIndex("InviteTokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("uq_customers_invite_token_hash")
+                        .HasFilter("invite_token_hash IS NOT NULL");
 
                     b.HasIndex("Phone")
                         .HasDatabaseName("ix_customers_phone")

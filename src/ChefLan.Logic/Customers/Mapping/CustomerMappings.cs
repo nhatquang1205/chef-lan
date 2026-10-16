@@ -8,7 +8,7 @@ internal static class CustomerMappings
     public static CustomerResponse ToResponse(this Customer customer) =>
         new(customer.Id, customer.Email, customer.FullName, customer.Phone);
 
-    public static CustomerStatus StatusOf(this Customer c)
+    public static CustomerStatus StatusOf(this Customer c, DateTime utcNow)
     {
         if (!c.IsActive)
         {
@@ -20,15 +20,19 @@ internal static class CustomerMappings
             return CustomerStatus.Active;
         }
 
-        // Invite expiry columns arrive with invitations; until then an invited customer stays Invited.
-        return c.InvitedAt is not null ? CustomerStatus.Invited : CustomerStatus.NotInvited;
+        if (c.InviteTokenHash is null)
+        {
+            return CustomerStatus.NotInvited;
+        }
+
+        return c.InviteExpiresAt > utcNow ? CustomerStatus.Invited : CustomerStatus.InviteExpired;
     }
 
-    public static CustomerAdminListItem ToListItem(this Customer c, CustomerAccessCounts counts) =>
-        new(c.Id, c.FullName, c.Email, c.Phone, c.FacebookName, c.StatusOf(),
+    public static CustomerAdminListItem ToListItem(this Customer c, CustomerAccessCounts counts, DateTime utcNow) =>
+        new(c.Id, c.FullName, c.Email, c.Phone, c.FacebookName, c.StatusOf(utcNow),
             c.InvitedAt, c.ActivatedAt, c.LastLoginAt, c.CreatedAt, counts.Courses, counts.Lessons);
 
-    public static CustomerAdminDetail ToAdminDetail(this Customer c) =>
+    public static CustomerAdminDetail ToAdminDetail(this Customer c, DateTime utcNow) =>
         new(c.Id, c.FullName, c.Email, c.Phone, c.FacebookName, c.FacebookProfileUrl, c.Note, c.IsActive,
-            c.StatusOf(), c.InvitedAt, null, c.ActivatedAt, c.LastLoginAt, c.CreatedAt);
+            c.StatusOf(utcNow), c.InvitedAt, c.InviteExpiresAt, c.ActivatedAt, c.LastLoginAt, c.CreatedAt);
 }

@@ -34,6 +34,14 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         // Nullable: staff can record a customer who cannot sign in yet.
         builder.Property(c => c.PasswordHash).HasMaxLength(255);
 
+        // SHA-256 of the one-time invitation token, as for refresh tokens. A new invite overwrites it.
+        builder.Property(c => c.InviteTokenHash).HasMaxLength(64);
+
+        builder.HasIndex(c => c.InviteTokenHash)
+            .HasDatabaseName("uq_customers_invite_token_hash")
+            .IsUnique()
+            .HasFilter("invite_token_hash IS NOT NULL");
+
         builder.Property(c => c.FullName)
             .HasMaxLength(200)
             .IsRequired();

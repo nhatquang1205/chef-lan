@@ -19,7 +19,11 @@ public interface ICustomerRepository
         PagedRequest request,
         string? search,
         CustomerStatus? status,
+        DateTime utcNow,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Tracked. The customer whose pending invitation has this token hash (expired or not).</summary>
+    Task<Customer?> GetByInviteTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
 
     void Add(Customer customer);
 }

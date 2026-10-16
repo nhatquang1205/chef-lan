@@ -52,6 +52,8 @@ Smtp__Username=<the gmail address>
 Smtp__Password=<16-character app password, no spaces>
 Smtp__FromAddress=<the same gmail address>
 Smtp__FromDisplayName=Bon Bocon
+# The customer website (no trailing slash): invitation links point here. Required when Smtp__Host is set.
+Web__PublicBaseUrl=https://<customer website domain>
 
 # FIRST DEPLOY ONLY - remove these three lines afterwards, then redeploy:
 Seed__RunOnStartup=true

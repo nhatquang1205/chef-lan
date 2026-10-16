@@ -49,6 +49,15 @@ public sealed class AdminCustomersController(ICustomerAdminService customers, IC
         CancellationToken cancellationToken) =>
         (await customers.UpdateAsync(id, request, cancellationToken)).ToActionResult(this);
 
+    /// <summary>
+    /// Sends (or resends) the invitation mail; the new link replaces any earlier one and works for 7 days.
+    /// 502 <c>email.send_failed</c> when the mail could not be sent (nothing changes then).
+    /// </summary>
+    [HttpPost("{id:long}/invite")]
+    [ProducesResponseType(typeof(CustomerInviteResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CustomerInviteResponse>> Invite(long id, CancellationToken cancellationToken) =>
+        (await customers.InviteAsync(id, cancellationToken)).ToActionResult(this);
+
     /// <summary>Signs the customer out everywhere (all refresh tokens revoked) and blocks login.</summary>
     [HttpPost("{id:long}/deactivate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

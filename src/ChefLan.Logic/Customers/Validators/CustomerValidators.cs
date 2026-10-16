@@ -50,3 +50,18 @@ internal sealed class CustomerAdminRequestValidator : AbstractValidator<Customer
         RuleFor(x => x.Note).MaximumLength(2000);
     }
 }
+
+internal sealed class InvitationTokenRequestValidator : AbstractValidator<InvitationTokenRequest>
+{
+    public InvitationTokenRequestValidator() => RuleFor(x => x.Token).NotEmpty().MaximumLength(100);
+}
+
+internal sealed class AcceptInvitationRequestValidator : AbstractValidator<AcceptInvitationRequest>
+{
+    public AcceptInvitationRequestValidator()
+    {
+        RuleFor(x => x.Token).NotEmpty().MaximumLength(100);
+        // Same rule as registration.
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(128);
+    }
+}
