@@ -11,19 +11,20 @@ using Microsoft.AspNetCore.Mvc;
 namespace ChefLan.Courses.API.Controllers;
 
 /// <summary>
-/// The public catalog. Anonymous: this is the storefront.
+/// The catalog. The course list and course page are public (the storefront); a lesson page needs a signed-in
+/// customer or staff account.
 ///
 /// Note what is injected — ICourseCatalogService, from ChefLan.Logic. The DbContext is
 /// not reachable from here, which is the point of the layering.
 /// </summary>
 [ApiController]
-[AllowAnonymous]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUser currentUser) : ControllerBase
 {
     /// <summary>Lists published courses, newest first by default.</summary>
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(PagedResult<CourseListItemResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<CourseListItemResponse>>> List(
         [FromQuery] int page = 1,
@@ -52,6 +53,7 @@ public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUse
     /// Non-free videos carry no URL.
     /// </summary>
     [HttpGet("{slug}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(CourseDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CourseDetailResponse>> Get(string slug, CancellationToken cancellationToken)
@@ -66,6 +68,7 @@ public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUse
     /// The answer depends on who asks, so it is never cached.
     /// </summary>
     [HttpGet("{slug}/lessons/{lessonSlug}")]
+    [Authorize(Policy = ChefLanPolicies.AnyUser)]
     [ProducesResponseType(typeof(LessonPageResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LessonPageResponse>> GetLesson(string slug, string lessonSlug, CancellationToken cancellationToken)
@@ -74,6 +77,6 @@ public sealed class CoursesController(ICourseCatalogService catalog, ICurrentUse
 
         Response.Headers.CacheControl = "private, no-store";
 
-        return (await catalog.GetPublishedLessonAsync(slug, lessonSlug, customerId, cancellationToken)).ToActionResult(this);
+        return (await catalog.GetPublishedLessonAsync(slug, lessonSlug, customerId, currentUser.TryGetStaffId(out _), cancellationToken)).ToActionResult(this);
     }
 }

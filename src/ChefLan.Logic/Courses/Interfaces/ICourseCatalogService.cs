@@ -29,5 +29,6 @@ public interface ICourseCatalogService
         string courseSlug,
         string lessonSlug,
         long? customerId,
+        bool viewerIsStaff,
         CancellationToken cancellationToken = default);
 }

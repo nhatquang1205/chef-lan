@@ -12,5 +12,6 @@ public interface IPlaybackService
     Task<Result<PlaybackResponse>> GetAsync(
         string publicId,
         long? customerId,
+        bool viewerIsStaff,
         CancellationToken cancellationToken = default);
 }

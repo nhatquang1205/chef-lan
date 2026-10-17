@@ -26,6 +26,9 @@ public interface IEnrollmentService
     Task<IReadOnlyList<MyCourseResponse>> ListMyCoursesAsync(long customerId, CancellationToken cancellationToken = default);
 
     /// <summary>For a signed-in customer: whole-course ownership and owned lessons for one published course.</summary>
+    /// <summary>For a signed-in staff account: everything published in the course is accessible.</summary>
+    Task<Result<CourseAccessResponse>> GetStaffCourseAccessAsync(string courseSlug, CancellationToken cancellationToken = default);
+
     Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
         string courseSlug, long customerId, CancellationToken cancellationToken = default);
 }

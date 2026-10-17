@@ -12,6 +12,9 @@ public sealed record LessonPageResponse
     /// <summary>True when the signed-in customer owns this lesson (through the course or on its own).</summary>
     public required bool HasAccess { get; init; }
 
+    /// <summary>The viewer is signed in with a staff account: full access, but they do not "own" anything.</summary>
+    public bool ViewerIsStaff { get; init; }
+
     /// <summary>Markdown. Null when the lesson has none, or when the viewer has no access.</summary>
     public string? Recipes { get; init; }
 

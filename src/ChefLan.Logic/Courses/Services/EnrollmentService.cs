@@ -226,6 +226,22 @@ internal sealed class EnrollmentService(
             .ToList();
     }
 
+    public async Task<Result<CourseAccessResponse>> GetStaffCourseAccessAsync(
+        string courseSlug,
+        CancellationToken cancellationToken = default)
+    {
+        var courseId = await courses.GetPublishedIdBySlugAsync(courseSlug, cancellationToken);
+
+        if (courseId is null)
+        {
+            return CourseErrors.NotFound(courseSlug);
+        }
+
+        var published = await lessons.ListForCourseAsync(courseId.Value, includeUnpublished: false, cancellationToken);
+
+        return new CourseAccessResponse(true, published.Select(l => l.Id).ToList()) { ViewerIsStaff = true };
+    }
+
     public async Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
         string courseSlug,
         long customerId,

@@ -77,6 +77,7 @@ internal sealed class CourseCatalogService(
         string courseSlug,
         string lessonSlug,
         long? customerId,
+        bool viewerIsStaff,
         CancellationToken cancellationToken = default)
     {
         var course = await courses.GetPublishedBySlugAsync(courseSlug, cancellationToken);
@@ -95,8 +96,10 @@ internal sealed class CourseCatalogService(
         }
 
         var lesson = lessons[index];
-        var hasAccess = customerId is { } id
-            && await enrollments.HasAccessAsync(id, course.Id, lesson.Id, clock.UtcNow, cancellationToken);
+        // Staff read every published lesson, recipe included, so they can check and support the content.
+        var hasAccess = viewerIsStaff
+            || (customerId is { } id
+                && await enrollments.HasAccessAsync(id, course.Id, lesson.Id, clock.UtcNow, cancellationToken));
         var hasRecipes = !string.IsNullOrWhiteSpace(lesson.Recipes);
 
         return new LessonPageResponse
@@ -105,6 +108,7 @@ internal sealed class CourseCatalogService(
             CourseTitle = course.Title,
             Lesson = ToOutline(lesson),
             HasAccess = hasAccess,
+            ViewerIsStaff = viewerIsStaff,
             Recipes = hasAccess && hasRecipes ? lesson.Recipes : null,
             RecipesLocked = hasRecipes && !hasAccess,
             Previous = index > 0 ? new LessonLinkResponse(lessons[index - 1].Slug, lessons[index - 1].Title) : null,

@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ChefLan.Courses.API.Controllers;
 
 [ApiController]
-[AllowAnonymous]
+// Signed-in viewers only (a customer or a staff account), even for free videos.
+[Authorize(Policy = ChefLanPolicies.AnyUser)]
 [Route("api/v1/videos")]
 [Produces("application/json")]
 public sealed class VideosController(IPlaybackService playback, ICurrentUser currentUser) : ControllerBase
@@ -26,7 +27,7 @@ public sealed class VideosController(IPlaybackService playback, ICurrentUser cur
     {
         long? customerId = currentUser.TryGetCustomerId(out var id) ? id : null;
 
-        var result = await playback.GetAsync(publicId, customerId, cancellationToken);
+        var result = await playback.GetAsync(publicId, customerId, currentUser.TryGetStaffId(out _), cancellationToken);
 
         // A signed link must never be cached or shared by a proxy.
         Response.Headers.CacheControl = "no-store";

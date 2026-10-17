@@ -204,8 +204,11 @@ against an admin's email lock the admin out from either login endpoint. Every fa
 password verifications (a miss verifies a dummy hash), so neither status code, body nor timing says
 which population an email belongs to. A customer who exists but is locked, inactive or not activated
 gets *that* answer and is never retried as staff. Admin endpoints (`/api/v1/admins/**`) are unchanged.
-**Not done:** a staff token on the *public* endpoints (`/courses/{slug}`) is still treated as anonymous,
-so an admin does not yet see paid video links when signed in on the web.
+**Staff on the website see everything published.** The lesson page (`GET /courses/{slug}/lessons/{lessonSlug}`) and
+playback (`GET /videos/{publicId}/playback`) require a signed-in account (`AnyUser`: customer OR staff token; anonymous
+is 401). A staff token gets full access there (every published video unlimited, every recipe) and
+`GET /courses/{slug}/access` answers "everything" with `viewerIsStaff: true`. The course list and course page stay
+public (`[AllowAnonymous]`). Who is asking is always decided with `ICurrentUser.TryGetStaffId/TryGetCustomerId`.
 
 Login rules, identical for both populations (`ChefLan.Logic/Abstractions/LoginSecurity.cs`):
 5 failures lock for 15 minutes (the locked check runs *before* the password check, so the

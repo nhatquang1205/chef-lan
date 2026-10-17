@@ -66,7 +66,11 @@ public sealed record CustomerAccessResponse(
     IReadOnlyList<LessonEnrollmentResponse> Lessons);
 
 /// <summary>What the signed-in customer owns within one course, so the course page can unlock the outline.</summary>
-public sealed record CourseAccessResponse(bool HasCourseAccess, IReadOnlyList<long> LessonIds);
+public sealed record CourseAccessResponse(bool HasCourseAccess, IReadOnlyList<long> LessonIds)
+{
+    /// <summary>Staff viewer: every published lesson is listed and unlocked, but nothing is owned.</summary>
+    public bool ViewerIsStaff { get; init; }
+}
 
 /// <summary>One course in the signed-in customer's library.</summary>
 public sealed record MyCourseResponse

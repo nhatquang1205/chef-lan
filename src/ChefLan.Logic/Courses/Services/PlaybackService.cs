@@ -16,6 +16,7 @@ internal sealed class PlaybackService(
     public async Task<Result<PlaybackResponse>> GetAsync(
         string publicId,
         long? customerId,
+        bool viewerIsStaff,
         CancellationToken cancellationToken = default)
     {
         var video = await videos.GetPublicByPublicIdAsync(publicId, cancellationToken);
@@ -25,12 +26,14 @@ internal sealed class PlaybackService(
             return PlaybackErrors.NotFound;
         }
 
-        // Entitlement before anything is minted. Owners (an active course enrollment, or an active
+        // Entitlement before anything is minted. Staff (signed in on the website with their staff login) see
+        // everything published, like owners. Owners (an active course enrollment, or an active
         // enrollment for this lesson) watch everything, unlimited. Everyone else gets only free videos,
         // and the resolver enforces the same rule a second time.
         var now = clock.UtcNow;
-        var hasFullAccess = customerId is { } id
-            && await enrollments.HasAccessAsync(id, video.Lesson!.CourseId, video.LessonId, now, cancellationToken);
+        var hasFullAccess = viewerIsStaff
+            || (customerId is { } id
+                && await enrollments.HasAccessAsync(id, video.Lesson!.CourseId, video.LessonId, now, cancellationToken));
 
         if (!video.IsFree && !hasFullAccess)
         {
