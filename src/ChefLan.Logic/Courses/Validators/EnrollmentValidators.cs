@@ -32,6 +32,23 @@ internal sealed class GrantCourseAccessRequestValidator : AbstractValidator<Gran
         RuleFor(x => x.Source)
             .Must(s => s is EnrollmentSource.AdminGrant or EnrollmentSource.FacebookMigration)
             .WithMessage("Source must be AdminGrant or FacebookMigration.");
+        RuleFor(x => x.ListPriceVnd!.Value)
+            .Must(Vnd.IsValid).WithMessage("'List Price Vnd' must be a whole, non-negative number of dong.")
+            .OverridePropertyName(nameof(GrantCourseAccessRequest.ListPriceVnd))
+            .When(x => x.ListPriceVnd is not null);
+        RuleFor(x => x.DiscountVnd!.Value)
+            .Must(Vnd.IsValid).WithMessage("'Discount Vnd' must be a whole, non-negative number of dong.")
+            .OverridePropertyName(nameof(GrantCourseAccessRequest.DiscountVnd))
+            .When(x => x.DiscountVnd is not null);
+        RuleFor(x => x.DiscountVnd)
+            .Must((x, d) => d is null || x.ListPriceVnd is not null && d <= x.ListPriceVnd)
+            .WithMessage("'Discount Vnd' needs listPriceVnd and cannot exceed it.")
+            .When(x => x.DiscountVnd is not null);
+        RuleFor(x => x.DiscountReason)
+            .MaximumLength(300)
+            .Must((x, r) => x.ListPriceVnd is not null)
+            .WithMessage("A discount reason needs listPriceVnd.")
+            .When(x => x.DiscountReason is not null);
     }
 }
 

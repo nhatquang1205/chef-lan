@@ -11,7 +11,10 @@ public sealed record GrantCourseAccessRequest(
     decimal? AmountPaidVnd = null,
     string? PaymentNote = null,
     string? PaymentReference = null,
-    EnrollmentSource Source = EnrollmentSource.AdminGrant);
+    EnrollmentSource Source = EnrollmentSource.AdminGrant,
+    decimal? ListPriceVnd = null,
+    decimal? DiscountVnd = null,
+    string? DiscountReason = null);
 
 /// <summary>Grant access to a single lesson. The expiry follows the lesson's course.</summary>
 public sealed record GrantLessonAccessRequest(

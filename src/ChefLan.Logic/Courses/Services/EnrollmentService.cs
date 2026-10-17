@@ -52,6 +52,10 @@ internal sealed class EnrollmentService(
 
         Apply(enrollment, request.Source, request.IsPaid, request.AmountPaidVnd, request.PaymentNote, request.PaymentReference, staffId, now, course.AccessDurationDays);
 
+        enrollment.ListPriceVnd = request.ListPriceVnd;
+        enrollment.DiscountVnd = request.ListPriceVnd is null ? null : request.DiscountVnd;
+        enrollment.DiscountReason = request.ListPriceVnd is null ? null : SlugAllocator.Clean(request.DiscountReason);
+
         if (isNew)
         {
             enrollments.Add(enrollment);
@@ -279,7 +283,84 @@ internal sealed class EnrollmentService(
                 grants));
         }
 
-        return new CourseAccessResponse(hasCourse, lessonIds) { IncludedCourses = includedAccess };
+        CourseQuoteResponse? quote = null;
+
+        if (!hasCourse)
+        {
+            var course = await courses.GetByIdAsync(courseId.Value, cancellationToken);
+
+            if (course is not null)
+            {
+                quote = (await BuildQuoteAsync(course, customerId, now, cancellationToken)).Quote;
+            }
+        }
+
+        return new CourseAccessResponse(hasCourse, lessonIds) { IncludedCourses = includedAccess, Quote = quote };
+    }
+
+    public async Task<Result<CourseQuoteResponse>> QuoteCourseAsync(
+        long courseId,
+        long customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await customers.FindAsync(customerId, null, cancellationToken);
+
+        if (customer is null)
+        {
+            return EnrollmentErrors.CustomerNotFound;
+        }
+
+        var course = await courses.GetByIdAsync(courseId, cancellationToken);
+
+        if (course is null)
+        {
+            return CourseErrors.NotFound(courseId);
+        }
+
+        var (quote, ownsCourse) = await BuildQuoteAsync(course, customerId, clock.UtcNow, cancellationToken);
+
+        // Already owning the course: nothing to discount (a grant would be a 409 anyway).
+        return ownsCourse ? new CourseQuoteResponse(course.PriceVnd, [], course.PriceVnd) : quote!;
+    }
+
+    private async Task<(CourseQuoteResponse? Quote, bool OwnsCourse)> BuildQuoteAsync(
+        Course course,
+        long customerId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var owned = await enrollments.OwnedCourseIdsAsync(customerId, [course.Id], now, cancellationToken);
+
+        if (owned.Contains(course.Id))
+        {
+            return (null, true);
+        }
+
+        var rows = await includes.ListForCourseAsync(course.Id, cancellationToken);
+        var have = await enrollments.OwnedCourseIdsAsync(customerId, rows.Select(r => r.IncludedCourseId).ToList(), now, cancellationToken);
+
+        // Cap each discount so the running total never passes the list price (the course may have been cheapened after the discount was set).
+        var remaining = course.PriceVnd;
+        var discounts = new List<QuoteDiscountResponse>();
+
+        foreach (var row in rows.Where(r => have.Contains(r.IncludedCourseId) && r.DiscountVnd > 0))
+        {
+            var amount = Math.Min(row.DiscountVnd, remaining);
+
+            if (amount <= 0)
+            {
+                break;
+            }
+
+            remaining -= amount;
+            discounts.Add(new QuoteDiscountResponse(
+                row.IncludedCourseId,
+                row.IncludedCourse?.Title ?? string.Empty,
+                amount,
+                $"Đã có khóa {row.IncludedCourse?.Title}"));
+        }
+
+        return (new CourseQuoteResponse(course.PriceVnd, discounts, remaining), false);
     }
 
     private async Task<Result<CustomerRef>> ResolveCustomerAsync(
@@ -341,6 +422,9 @@ internal sealed class EnrollmentService(
         AmountPaidVnd = e.AmountPaidVnd,
         PaymentNote = e.PaymentNote,
         PaymentReference = e.PaymentReference,
+        ListPriceVnd = e.ListPriceVnd,
+        DiscountVnd = e.DiscountVnd,
+        DiscountReason = e.DiscountReason,
     };
 
     private static LessonEnrollmentResponse ToResponse(LessonEnrollment e, string? lessonTitle, long? courseId) => new()

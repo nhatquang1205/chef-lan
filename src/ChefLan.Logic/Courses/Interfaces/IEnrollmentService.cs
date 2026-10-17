@@ -31,4 +31,7 @@ public interface IEnrollmentService
 
     Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
         string courseSlug, long customerId, CancellationToken cancellationToken = default);
+
+    /// <summary>The price of a course for a customer: list price, discounts for included courses they already have, final price.</summary>
+    Task<Result<CourseQuoteResponse>> QuoteCourseAsync(long courseId, long customerId, CancellationToken cancellationToken = default);
 }

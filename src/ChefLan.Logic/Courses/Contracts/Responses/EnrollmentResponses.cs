@@ -28,6 +28,13 @@ public sealed record CourseEnrollmentResponse
     public string? PaymentNote { get; init; }
 
     public string? PaymentReference { get; init; }
+
+    /// <summary>What the course cost when granted, if staff recorded it.</summary>
+    public decimal? ListPriceVnd { get; init; }
+
+    public decimal? DiscountVnd { get; init; }
+
+    public string? DiscountReason { get; init; }
 }
 
 public sealed record LessonEnrollmentResponse
@@ -73,7 +80,14 @@ public sealed record CourseAccessResponse(bool HasCourseAccess, IReadOnlyList<lo
 
     /// <summary>One entry per published course this course includes.</summary>
     public IReadOnlyList<IncludedCourseAccessResponse> IncludedCourses { get; init; } = [];
+
+    /// <summary>The signed-in customer's price for this course; null for staff and when the customer already owns it.</summary>
+    public CourseQuoteResponse? Quote { get; init; }
 }
+
+public sealed record QuoteDiscountResponse(long IncludedCourseId, string Title, decimal DiscountVnd, string Reason);
+
+public sealed record CourseQuoteResponse(decimal ListPriceVnd, IReadOnlyList<QuoteDiscountResponse> Discounts, decimal FinalPriceVnd);
 
 /// <summary>Access to one included course: whole (owned directly or through a parent) and/or single lessons.</summary>
 public sealed record IncludedCourseAccessResponse(string Slug, bool HasCourseAccess, IReadOnlyList<long> LessonIds);

@@ -52,6 +52,15 @@ public sealed class AdminEnrollmentsController(IEnrollmentService enrollments, I
     public async Task<ActionResult<CustomerAccessResponse>> GetAccess(long customerId, CancellationToken cancellationToken) =>
         (await enrollments.GetCustomerAccessAsync(customerId, cancellationToken)).ToActionResult(this);
 
+    /// <summary>What this course costs this customer: list price, discounts for included courses they already have, final price.</summary>
+    [HttpGet("customers/{customerId:long}/quote")]
+    [ProducesResponseType(typeof(CourseQuoteResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CourseQuoteResponse>> Quote(
+        long customerId,
+        [FromQuery] long courseId,
+        CancellationToken cancellationToken) =>
+        (await enrollments.QuoteCourseAsync(courseId, customerId, cancellationToken)).ToActionResult(this);
+
     [HttpPost("enrollments/{id:long}/revoke")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult> RevokeCourse(long id, CancellationToken cancellationToken) =>
