@@ -13,6 +13,15 @@ public interface ICourseIncludeRepository
     /// <summary>The live courses that include this one, by title.</summary>
     Task<IReadOnlyList<Course>> ListParentsAsync(long includedCourseId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Read-only: the PUBLISHED courses this one includes, in sort order, each with its published
+    /// included-in-course lessons and their published videos.
+    /// </summary>
+    Task<IReadOnlyList<Course>> ListPublishedIncludedWithLessonsAsync(long courseId, CancellationToken cancellationToken = default);
+
+    /// <summary>Read-only: the published courses that include this one, by title.</summary>
+    Task<IReadOnlyList<Course>> ListPublishedParentsAsync(long includedCourseId, CancellationToken cancellationToken = default);
+
     Task<int> CountIncludesAsync(long courseId, CancellationToken cancellationToken = default);
 
     Task<int> CountIncludedInAsync(long courseId, CancellationToken cancellationToken = default);

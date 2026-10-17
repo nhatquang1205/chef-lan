@@ -70,7 +70,13 @@ public sealed record CourseAccessResponse(bool HasCourseAccess, IReadOnlyList<lo
 {
     /// <summary>Staff viewer: every published lesson is listed and unlocked, but nothing is owned.</summary>
     public bool ViewerIsStaff { get; init; }
+
+    /// <summary>One entry per published course this course includes.</summary>
+    public IReadOnlyList<IncludedCourseAccessResponse> IncludedCourses { get; init; } = [];
 }
+
+/// <summary>Access to one included course: whole (owned directly or through a parent) and/or single lessons.</summary>
+public sealed record IncludedCourseAccessResponse(string Slug, bool HasCourseAccess, IReadOnlyList<long> LessonIds);
 
 /// <summary>One course in the signed-in customer's library.</summary>
 public sealed record MyCourseResponse

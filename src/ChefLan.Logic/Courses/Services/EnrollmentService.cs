@@ -15,6 +15,7 @@ internal sealed class EnrollmentService(
     IEnrollmentRepository enrollments,
     ICourseRepository courses,
     ILessonRepository lessons,
+    ICourseIncludeRepository includes,
     ICustomerDirectory customers,
     IUnitOfWork unitOfWork,
     IClock clock) : IEnrollmentService
@@ -238,8 +239,15 @@ internal sealed class EnrollmentService(
         }
 
         var published = await lessons.ListForCourseAsync(courseId.Value, includeUnpublished: false, cancellationToken);
+        var included = await includes.ListPublishedIncludedWithLessonsAsync(courseId.Value, cancellationToken);
 
-        return new CourseAccessResponse(true, published.Select(l => l.Id).ToList()) { ViewerIsStaff = true };
+        return new CourseAccessResponse(true, published.Select(l => l.Id).ToList())
+        {
+            ViewerIsStaff = true,
+            IncludedCourses = included
+                .Select(c => new IncludedCourseAccessResponse(c.Slug, true, c.Lessons.Select(l => l.Id).ToList()))
+                .ToList(),
+        };
     }
 
     public async Task<Result<CourseAccessResponse>> GetCourseAccessAsync(
@@ -254,9 +262,24 @@ internal sealed class EnrollmentService(
             return CourseErrors.NotFound(courseSlug);
         }
 
-        var (hasCourse, lessonIds) = await enrollments.GetCourseAccessAsync(customerId, courseId.Value, clock.UtcNow, cancellationToken);
+        var now = clock.UtcNow;
+        var (hasCourse, lessonIds) = await enrollments.GetCourseAccessAsync(customerId, courseId.Value, now, cancellationToken);
+        var included = await includes.ListPublishedIncludedWithLessonsAsync(courseId.Value, cancellationToken);
+        var owned = await enrollments.OwnedCourseIdsAsync(customerId, included.Select(c => c.Id).ToList(), now, cancellationToken);
 
-        return new CourseAccessResponse(hasCourse, lessonIds);
+        var includedAccess = new List<IncludedCourseAccessResponse>(included.Count);
+
+        foreach (var course in included)
+        {
+            var (_, grants) = await enrollments.GetCourseAccessAsync(customerId, course.Id, now, cancellationToken);
+
+            includedAccess.Add(new IncludedCourseAccessResponse(
+                course.Slug,
+                hasCourse || owned.Contains(course.Id),
+                grants));
+        }
+
+        return new CourseAccessResponse(hasCourse, lessonIds) { IncludedCourses = includedAccess };
     }
 
     private async Task<Result<CustomerRef>> ResolveCustomerAsync(

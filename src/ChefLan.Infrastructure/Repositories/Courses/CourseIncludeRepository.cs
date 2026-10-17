@@ -1,5 +1,6 @@
 using ChefLan.DB.Contexts;
 using ChefLan.Domain.Courses.Entities;
+using ChefLan.Domain.Enums;
 using ChefLan.Logic.Courses.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,38 @@ internal sealed class CourseIncludeRepository(CoursesDbContext context) : ICours
         await context.CourseIncludes
             .AsNoTracking()
             .Where(i => i.IncludedCourseId == includedCourseId)
+            .Select(i => i.Course!)
+            .OrderBy(c => c.Title)
+            .ThenBy(c => c.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Course>> ListPublishedIncludedWithLessonsAsync(
+        long courseId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await context.CourseIncludes
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Where(i => i.CourseId == courseId && i.IncludedCourse!.Status == CourseStatus.Published)
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.IncludedCourseId)
+            .Include(i => i.IncludedCourse!)
+                .ThenInclude(c => c.Lessons
+                    .Where(l => l.IsPublished && l.IncludedInCourse)
+                    .OrderBy(l => l.SortOrder)
+                    .ThenBy(l => l.Id))
+                .ThenInclude(l => l.Videos.Where(v => v.IsPublished).OrderBy(v => v.SortOrder).ThenBy(v => v.Id))
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(i => i.IncludedCourse!).ToList();
+    }
+
+    public async Task<IReadOnlyList<Course>> ListPublishedParentsAsync(
+        long includedCourseId,
+        CancellationToken cancellationToken = default) =>
+        await context.CourseIncludes
+            .AsNoTracking()
+            .Where(i => i.IncludedCourseId == includedCourseId && i.Course!.Status == CourseStatus.Published)
             .Select(i => i.Course!)
             .OrderBy(c => c.Title)
             .ThenBy(c => c.Id)

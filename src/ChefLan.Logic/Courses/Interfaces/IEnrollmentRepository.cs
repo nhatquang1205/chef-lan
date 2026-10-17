@@ -12,12 +12,23 @@ public interface IEnrollmentRepository
 {
     /// <summary>
     /// The access check: an active, unexpired course enrollment for the lesson's course OR an active,
+    /// unexpired enrollment in a course that includes that course (included lessons only) OR an active,
     /// unexpired enrollment for that lesson. Two single-row lookups, thanks to the unique indexes.
     /// </summary>
     Task<bool> HasAccessAsync(
         long customerId,
         long courseId,
         long lessonId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The subset of the given courses the customer has: an active, unexpired enrollment in the course
+    /// itself or in any course that includes it.
+    /// </summary>
+    Task<IReadOnlySet<long>> OwnedCourseIdsAsync(
+        long customerId,
+        IReadOnlyCollection<long> courseIds,
         DateTime utcNow,
         CancellationToken cancellationToken = default);
 

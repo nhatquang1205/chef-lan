@@ -93,7 +93,38 @@ public sealed record CourseDetailResponse
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 
     public required IReadOnlyList<LessonOutlineResponse> Lessons { get; init; }
+
+    /// <summary>Published courses this one includes, in order, with only their included lessons.</summary>
+    public IReadOnlyList<IncludedCourseResponse> IncludedCourses { get; init; } = [];
+
+    /// <summary>Published courses that include this one.</summary>
+    public IReadOnlyList<CourseLinkResponse> IncludedIn { get; init; } = [];
+
+    /// <summary>Own lessons plus the included courses' lessons, computed on read.</summary>
+    public int TotalLessonCount { get; init; }
+
+    public int TotalDurationSecondsWithIncluded { get; init; }
 }
+
+/// <summary>A shared course shown on its parent's page.</summary>
+public sealed record IncludedCourseResponse
+{
+    public required string Slug { get; init; }
+
+    public required string Title { get; init; }
+
+    public string? Subtitle { get; init; }
+
+    public string? ThumbnailUrl { get; init; }
+
+    public required int LessonCount { get; init; }
+
+    public required int TotalDurationSeconds { get; init; }
+
+    public required IReadOnlyList<LessonOutlineResponse> Lessons { get; init; }
+}
+
+public sealed record CourseLinkResponse(string Slug, string Title);
 
 /// <summary>Recipes and resources are deliberately absent: they are part of what is sold.</summary>
 public sealed record LessonOutlineResponse

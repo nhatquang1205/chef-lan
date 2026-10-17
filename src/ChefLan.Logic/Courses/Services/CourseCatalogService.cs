@@ -17,6 +17,7 @@ namespace ChefLan.Logic.Courses.Services;
 /// </summary>
 internal sealed class CourseCatalogService(
     ICourseRepository courses,
+    ICourseIncludeRepository includes,
     IEnrollmentRepository enrollments,
     IClock clock) : ICourseCatalogService
 {
@@ -49,6 +50,23 @@ internal sealed class CourseCatalogService(
 
         var summary = course.ToListItemResponse();
 
+        var includedCourses = (await includes.ListPublishedIncludedWithLessonsAsync(course.Id, cancellationToken))
+            .Select(c => new IncludedCourseResponse
+            {
+                Slug = c.Slug,
+                Title = c.Title,
+                Subtitle = c.Subtitle,
+                ThumbnailUrl = c.ThumbnailUrl,
+                LessonCount = c.LessonCount,
+                TotalDurationSeconds = c.TotalDurationSeconds,
+                Lessons = c.Lessons.Select(ToOutline).ToList(),
+            })
+            .ToList();
+
+        var includedIn = (await includes.ListPublishedParentsAsync(course.Id, cancellationToken))
+            .Select(c => new CourseLinkResponse(c.Slug, c.Title))
+            .ToList();
+
         return new CourseDetailResponse
         {
             Id = course.Id,
@@ -70,6 +88,10 @@ internal sealed class CourseCatalogService(
             TotalDurationSeconds = course.TotalDurationSeconds,
             Categories = summary.Categories,
             Lessons = outline,
+            IncludedCourses = includedCourses,
+            IncludedIn = includedIn,
+            TotalLessonCount = course.LessonCount + includedCourses.Sum(c => c.LessonCount),
+            TotalDurationSecondsWithIncluded = course.TotalDurationSeconds + includedCourses.Sum(c => c.TotalDurationSeconds),
         };
     }
 

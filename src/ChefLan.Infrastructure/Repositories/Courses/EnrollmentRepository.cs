@@ -24,9 +24,10 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
         (await context.Lessons.AnyAsync(l => l.Id == lessonId && l.IncludedInCourse, cancellationToken)
             && await context.Enrollments.AnyAsync(
                 e => e.CustomerId == customerId
-                    && e.CourseId == courseId
                     && e.Status == EnrollmentStatus.Active
-                    && (e.ExpiresAt == null || e.ExpiresAt > utcNow),
+                    && (e.ExpiresAt == null || e.ExpiresAt > utcNow)
+                    && (e.CourseId == courseId
+                        || context.CourseIncludes.Any(i => i.CourseId == e.CourseId && i.IncludedCourseId == courseId)),
                 cancellationToken))
         || await context.LessonEnrollments.AnyAsync(
             e => e.CustomerId == customerId
@@ -34,6 +35,41 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
                 && e.Status == EnrollmentStatus.Active
                 && (e.ExpiresAt == null || e.ExpiresAt > utcNow),
             cancellationToken);
+
+    public async Task<IReadOnlySet<long>> OwnedCourseIdsAsync(
+        long customerId,
+        IReadOnlyCollection<long> courseIds,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        if (courseIds.Count == 0)
+        {
+            return new HashSet<long>();
+        }
+
+        var ids = courseIds.ToList();
+
+        var direct = await context.Enrollments
+            .AsNoTracking()
+            .Where(e => e.CustomerId == customerId
+                && e.Status == EnrollmentStatus.Active
+                && (e.ExpiresAt == null || e.ExpiresAt > utcNow)
+                && ids.Contains(e.CourseId))
+            .Select(e => e.CourseId)
+            .ToListAsync(cancellationToken);
+
+        var viaParent = await context.CourseIncludes
+            .AsNoTracking()
+            .Where(i => ids.Contains(i.IncludedCourseId)
+                && context.Enrollments.Any(e => e.CustomerId == customerId
+                    && e.CourseId == i.CourseId
+                    && e.Status == EnrollmentStatus.Active
+                    && (e.ExpiresAt == null || e.ExpiresAt > utcNow)))
+            .Select(i => i.IncludedCourseId)
+            .ToListAsync(cancellationToken);
+
+        return direct.Concat(viaParent).ToHashSet();
+    }
 
     public async Task<(bool HasCourseAccess, IReadOnlyList<long> LessonIds)> GetCourseAccessAsync(
         long customerId,
