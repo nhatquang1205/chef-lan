@@ -54,6 +54,16 @@ public sealed class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollmen
             .HasPrecision(12, 0)
             .HasComment("What was actually received — a snapshot, not the current course price");
 
+        builder.Property(e => e.ListPriceVnd)
+            .HasPrecision(12, 0)
+            .HasComment("The course price at grant time, before any included-course discount");
+
+        builder.Property(e => e.DiscountVnd)
+            .HasPrecision(12, 0)
+            .HasComment("Included-course discount applied at grant time");
+
+        builder.Property(e => e.DiscountReason).HasMaxLength(300);
+
         builder.Property(e => e.Currency)
             .HasColumnType("char(3)")
             .HasDefaultValue("VND");

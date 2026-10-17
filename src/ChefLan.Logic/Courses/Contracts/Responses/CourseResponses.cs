@@ -44,6 +44,12 @@ public sealed record CourseAdminDetailResponse
 
     public string? LegacyFacebookGroupUrl { get; init; }
 
+    /// <summary>How many courses this one includes.</summary>
+    public int IncludesCount { get; init; }
+
+    /// <summary>How many courses include this one.</summary>
+    public int IncludedInCount { get; init; }
+
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 }
 

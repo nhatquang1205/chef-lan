@@ -83,3 +83,21 @@ public interface ILessonVideoService
     Task<Result> ReorderAsync(
         long lessonId, LessonVideoOrderRequest request, CancellationToken cancellationToken = default);
 }
+
+public interface ICourseIncludeService
+{
+    Task<Result<IReadOnlyList<CourseIncludeResponse>>> ListAsync(
+        long courseId, CancellationToken cancellationToken = default);
+
+    /// <summary>Adds the pair at the end of the order, or updates the discount of an existing pair.</summary>
+    Task<Result<CourseIncludeResponse>> UpsertAsync(
+        long courseId, long includedCourseId, CourseIncludeRequest request, CancellationToken cancellationToken = default);
+
+    Task<Result> RemoveAsync(long courseId, long includedCourseId, CancellationToken cancellationToken = default);
+
+    Task<Result> ReorderAsync(
+        long courseId, CourseIncludeOrderRequest request, CancellationToken cancellationToken = default);
+
+    Task<Result<IReadOnlyList<CourseIncludedInResponse>>> ListIncludedInAsync(
+        long courseId, CancellationToken cancellationToken = default);
+}

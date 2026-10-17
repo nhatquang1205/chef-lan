@@ -29,7 +29,8 @@ public static class CourseMappings
         Categories = course.Categories(),
     };
 
-    public static CourseAdminDetailResponse ToAdminDetailResponse(this Course course) => new()
+    public static CourseAdminDetailResponse ToAdminDetailResponse(
+        this Course course, int includesCount = 0, int includedInCount = 0) => new()
     {
         Id = course.Id,
         Slug = course.Slug,
@@ -51,6 +52,8 @@ public static class CourseMappings
         TotalDurationSeconds = course.TotalDurationSeconds,
         EnrollmentCount = course.EnrollmentCount,
         LegacyFacebookGroupUrl = course.LegacyFacebookGroupUrl,
+        IncludesCount = includesCount,
+        IncludedInCount = includedInCount,
         Categories = course.Categories(),
     };
 

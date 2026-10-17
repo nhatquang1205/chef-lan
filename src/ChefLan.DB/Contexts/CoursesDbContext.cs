@@ -32,6 +32,8 @@ public sealed class CoursesDbContext(DbContextOptions<CoursesDbContext> options)
 
     public DbSet<CourseCategory> CourseCategories => Set<CourseCategory>();
 
+    public DbSet<CourseInclude> CourseIncludes => Set<CourseInclude>();
+
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
 
     public DbSet<LessonEnrollment> LessonEnrollments => Set<LessonEnrollment>();

@@ -36,6 +36,14 @@ public class Enrollment : AuditableEntity, IHasRowVersion
     /// <summary>What she actually received — a snapshot, not a lookup of the course price.</summary>
     public decimal? AmountPaidVnd { get; set; }
 
+    /// <summary>The course price when granted, before any included-course discount.</summary>
+    public decimal? ListPriceVnd { get; set; }
+
+    /// <summary>The included-course discount applied at grant time.</summary>
+    public decimal? DiscountVnd { get; set; }
+
+    public string? DiscountReason { get; set; }
+
     public string Currency { get; set; } = "VND";
 
     public string? PaymentNote { get; set; }

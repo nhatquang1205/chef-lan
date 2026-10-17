@@ -17,6 +17,7 @@ public static class CoursesModule
         services.AddScoped<ICategoryCatalogService, CategoryCatalogService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped<ICourseIncludeService, CourseIncludeService>();
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<ILessonVideoService, LessonVideoService>();
         services.AddScoped<IMediaUploadService, MediaUploadService>();

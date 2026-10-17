@@ -49,7 +49,7 @@ Index on `included_course_id` (reverse lookups: "who includes C").
 
 | # | Repo | Plan | Status |
 |---|---|---|---|
-| B1 | chef-lan | [Schema + admin API for includes](plans/01-schema-and-admin-api.md) | todo |
+| B1 | chef-lan | [Schema + admin API for includes](plans/01-schema-and-admin-api.md) | done |
 | B2 | chef-lan | [Access rule + public API](plans/02-access-and-public-api.md) | todo |
 | B3 | chef-lan | [Discount quote + recorded on grants](plans/03-discounts-and-grants.md) | todo |
 | W  | chef-lan-web | `docs/plans/02-included-courses.md` | todo |

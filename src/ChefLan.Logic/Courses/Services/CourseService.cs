@@ -18,6 +18,7 @@ internal sealed class CourseService(
     ICategoryRepository categories,
     ILessonRepository lessons,
     ILessonVideoRepository videos,
+    ICourseIncludeRepository includes,
     IUnitOfWork unitOfWork,
     ISlugGenerator slugGenerator,
     IClock clock) : ICourseService
@@ -41,7 +42,14 @@ internal sealed class CourseService(
     {
         var course = await courses.GetByIdWithCategoriesAsync(id, cancellationToken);
 
-        return course is null ? CourseErrors.NotFound(id) : course.ToAdminDetailResponse();
+        if (course is null)
+        {
+            return CourseErrors.NotFound(id);
+        }
+
+        return course.ToAdminDetailResponse(
+            await includes.CountIncludesAsync(id, cancellationToken),
+            await includes.CountIncludedInAsync(id, cancellationToken));
     }
 
     public async Task<Result<CourseAdminDetailResponse>> CreateAsync(
@@ -114,7 +122,9 @@ internal sealed class CourseService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return course.ToAdminDetailResponse();
+        return course.ToAdminDetailResponse(
+            await includes.CountIncludesAsync(id, cancellationToken),
+            await includes.CountIncludedInAsync(id, cancellationToken));
     }
 
     public async Task<Result> DeleteAsync(long id, CancellationToken cancellationToken = default)
@@ -124,6 +134,12 @@ internal sealed class CourseService(
         if (course is null)
         {
             return Result.Failure(CourseErrors.NotFound(id));
+        }
+
+        if (await includes.CountIncludesAsync(id, cancellationToken) > 0
+            || await includes.CountIncludedInAsync(id, cancellationToken) > 0)
+        {
+            return Result.Failure(CourseErrors.HasIncludes);
         }
 
         courses.Remove(course);

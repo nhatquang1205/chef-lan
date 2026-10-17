@@ -52,4 +52,10 @@ public class Course : AuditableSoftDeletableEntity, IHasRowVersion
     public ICollection<CourseCategory> CourseCategories { get; set; } = [];
 
     public ICollection<Enrollment> Enrollments { get; set; } = [];
+
+    /// <summary>Courses this one includes (this course is the parent).</summary>
+    public ICollection<CourseInclude> Includes { get; set; } = [];
+
+    /// <summary>Courses that include this one (this course is the shared child).</summary>
+    public ICollection<CourseInclude> IncludedIn { get; set; } = [];
 }

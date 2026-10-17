@@ -34,4 +34,28 @@ public static class CourseErrors
 
     public static readonly Error EnrollmentExpired =
         Error.Forbidden("course.enrollment_expired", "Your access to this course has expired.");
+
+    public static readonly Error IncludeSelf =
+        Error.Validation("course.include_self", "A course cannot include itself.");
+
+    public static readonly Error IncludeNested =
+        Error.Validation(
+            "course.include_nested",
+            "Only one level is allowed: a course that is included elsewhere cannot include others, "
+            + "and an included course cannot include others.");
+
+    public static readonly Error IncludeDiscountTooHigh =
+        Error.Validation(
+            "course.include_discount_too_high",
+            "The discount cannot be higher than the course price.");
+
+    public static Error IncludeNotFound(long courseId, long includedCourseId) =>
+        Error.NotFound(
+            "course.include_not_found",
+            $"Course {courseId} does not include course {includedCourseId}.");
+
+    public static readonly Error HasIncludes =
+        Error.Conflict(
+            "course.has_includes",
+            "The course includes other courses or is included by one. Remove those links first.");
 }

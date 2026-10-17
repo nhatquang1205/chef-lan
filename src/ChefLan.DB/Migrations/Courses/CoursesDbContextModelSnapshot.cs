@@ -314,6 +314,42 @@ namespace ChefLan.DB.Migrations.Courses
                     b.ToTable("course_categories", "courses");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseInclude", b =>
+                {
+                    b.Property<long>("CourseId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("course_id");
+
+                    b.Property<long>("IncludedCourseId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("included_course_id");
+
+                    b.Property<decimal>("DiscountVnd")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_vnd")
+                        .HasComment("Taken off the parent's price when the customer already has the included course");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("CourseId", "IncludedCourseId")
+                        .HasName("pk_course_includes");
+
+                    b.HasIndex("IncludedCourseId")
+                        .HasDatabaseName("ix_course_includes_included_course_id");
+
+                    b.ToTable("course_includes", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_course_includes_discount_non_negative", "discount_vnd >= 0");
+
+                            t.HasCheckConstraint("ck_course_includes_not_self", "course_id <> included_course_id");
+                        });
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Enrollment", b =>
                 {
                     b.Property<long>("Id")
@@ -356,6 +392,17 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("bigint")
                         .HasColumnName("customer_id");
 
+                    b.Property<string>("DiscountReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("discount_reason");
+
+                    b.Property<decimal?>("DiscountVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("discount_vnd")
+                        .HasComment("Included-course discount applied at grant time");
+
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("expires_at")
@@ -375,6 +422,12 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Property<DateTime?>("LastAccessedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("last_accessed_at");
+
+                    b.Property<decimal?>("ListPriceVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("list_price_vnd")
+                        .HasComment("The course price at grant time, before any included-course discount");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamptz")
@@ -1265,6 +1318,27 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("Course");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseInclude", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Course", "Course")
+                        .WithMany("Includes")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_includes_courses_course_id");
+
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Course", "IncludedCourse")
+                        .WithMany("IncludedIn")
+                        .HasForeignKey("IncludedCourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_includes_courses_included_course_id");
+
+                    b.Navigation("Course");
+
+                    b.Navigation("IncludedCourse");
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Enrollment", b =>
                 {
                     b.HasOne("ChefLan.Domain.Courses.Entities.Course", "Course")
@@ -1365,6 +1439,10 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("CourseCategories");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("IncludedIn");
+
+                    b.Navigation("Includes");
 
                     b.Navigation("Lessons");
                 });
