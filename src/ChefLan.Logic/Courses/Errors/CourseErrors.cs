@@ -54,6 +54,12 @@ public static class CourseErrors
             "course.include_not_found",
             $"Course {courseId} does not include course {includedCourseId}.");
 
+    public static Error TooManyImages(int max) =>
+        Error.Validation("course.too_many_images", $"A course can have at most {max} images.");
+
+    public static Error ImageNotFound(long id) =>
+        Error.NotFound("course.image_not_found", $"Course image {id} was not found.");
+
     public static readonly Error HasIncludes =
         Error.Conflict(
             "course.has_includes",

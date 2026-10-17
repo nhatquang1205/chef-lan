@@ -101,3 +101,22 @@ public interface ICourseIncludeService
     Task<Result<IReadOnlyList<CourseIncludedInResponse>>> ListIncludedInAsync(
         long courseId, CancellationToken cancellationToken = default);
 }
+
+public interface ICourseImageService
+{
+    Task<Result<IReadOnlyList<CourseImageResponse>>> ListAsync(
+        long courseId, CancellationToken cancellationToken = default);
+
+    /// <summary>Appends the image last; at most 20 per course.</summary>
+    Task<Result<CourseImageResponse>> CreateAsync(
+        long courseId, CourseImageRequest request, CancellationToken cancellationToken = default);
+
+    Task<Result<CourseImageResponse>> UpdateAsync(
+        long imageId, CourseImageUpdateRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes the row, then the stored file (best effort, our URLs only).</summary>
+    Task<Result> DeleteAsync(long imageId, CancellationToken cancellationToken = default);
+
+    Task<Result> ReorderAsync(
+        long courseId, CourseImageOrderRequest request, CancellationToken cancellationToken = default);
+}

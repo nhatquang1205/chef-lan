@@ -49,6 +49,9 @@ public class Course : AuditableSoftDeletableEntity, IHasRowVersion
 
     public ICollection<Lesson> Lessons { get; set; } = [];
 
+    /// <summary>The gallery (carousel on the course page), ordered by <c>SortOrder</c>.</summary>
+    public ICollection<CourseImage> Images { get; set; } = [];
+
     public ICollection<CourseCategory> CourseCategories { get; set; } = [];
 
     public ICollection<Enrollment> Enrollments { get; set; } = [];

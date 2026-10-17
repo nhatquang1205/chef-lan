@@ -19,6 +19,7 @@ internal sealed class CourseService(
     ILessonRepository lessons,
     ILessonVideoRepository videos,
     ICourseIncludeRepository includes,
+    ICourseImageRepository images,
     IUnitOfWork unitOfWork,
     ISlugGenerator slugGenerator,
     IClock clock) : ICourseService
@@ -49,7 +50,8 @@ internal sealed class CourseService(
 
         return course.ToAdminDetailResponse(
             await includes.CountIncludesAsync(id, cancellationToken),
-            await includes.CountIncludedInAsync(id, cancellationToken));
+            await includes.CountIncludedInAsync(id, cancellationToken),
+            await images.CountAsync(id, cancellationToken));
     }
 
     public async Task<Result<CourseAdminDetailResponse>> CreateAsync(
@@ -124,7 +126,8 @@ internal sealed class CourseService(
 
         return course.ToAdminDetailResponse(
             await includes.CountIncludesAsync(id, cancellationToken),
-            await includes.CountIncludedInAsync(id, cancellationToken));
+            await includes.CountIncludedInAsync(id, cancellationToken),
+            await images.CountAsync(id, cancellationToken));
     }
 
     public async Task<Result> DeleteAsync(long id, CancellationToken cancellationToken = default)

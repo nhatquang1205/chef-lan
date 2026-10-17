@@ -17,6 +17,7 @@ public static class CourseMappings
         Title = course.Title,
         Subtitle = course.Subtitle,
         ThumbnailUrl = course.ThumbnailUrl,
+        CardImageUrl = course.CardImageUrl(),
         Level = course.Level,
         Status = course.Status,
         PublishedAt = course.PublishedAt,
@@ -30,7 +31,7 @@ public static class CourseMappings
     };
 
     public static CourseAdminDetailResponse ToAdminDetailResponse(
-        this Course course, int includesCount = 0, int includedInCount = 0) => new()
+        this Course course, int includesCount = 0, int includedInCount = 0, int imageCount = 0) => new()
     {
         Id = course.Id,
         Slug = course.Slug,
@@ -54,6 +55,7 @@ public static class CourseMappings
         LegacyFacebookGroupUrl = course.LegacyFacebookGroupUrl,
         IncludesCount = includesCount,
         IncludedInCount = includedInCount,
+        ImageCount = imageCount,
         Categories = course.Categories(),
     };
 

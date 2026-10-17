@@ -103,6 +103,9 @@ public sealed record MyCourseResponse
 
     public string? ThumbnailUrl { get; init; }
 
+    /// <summary>The first gallery image, else <see cref="ThumbnailUrl"/>.</summary>
+    public string? CardImageUrl { get; init; }
+
     /// <summary>True when the whole course is owned (every included lesson).</summary>
     public required bool HasCourseAccess { get; init; }
 

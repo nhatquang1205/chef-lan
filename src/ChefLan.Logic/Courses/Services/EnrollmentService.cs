@@ -8,6 +8,7 @@ using ChefLan.Logic.Courses.Contracts.Requests;
 using ChefLan.Logic.Courses.Contracts.Responses;
 using ChefLan.Logic.Courses.Errors;
 using ChefLan.Logic.Courses.Interfaces;
+using ChefLan.Logic.Courses.Mapping;
 
 namespace ChefLan.Logic.Courses.Services;
 
@@ -218,6 +219,7 @@ internal sealed class EnrollmentService(
                         Slug = course.Slug,
                         Title = course.Title,
                         ThumbnailUrl = course.ThumbnailUrl,
+                        CardImageUrl = course.CardImageUrl(),
                         HasCourseAccess = whole is not null,
                         CourseExpiresAt = whole?.ExpiresAt,
                         Lessons = owned

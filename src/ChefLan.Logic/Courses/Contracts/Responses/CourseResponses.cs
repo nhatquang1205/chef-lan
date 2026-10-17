@@ -50,6 +50,9 @@ public sealed record CourseAdminDetailResponse
     /// <summary>How many courses include this one.</summary>
     public int IncludedInCount { get; init; }
 
+    /// <summary>How many gallery images the course has.</summary>
+    public int ImageCount { get; init; }
+
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 }
 
@@ -93,6 +96,9 @@ public sealed record CourseDetailResponse
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 
     public required IReadOnlyList<LessonOutlineResponse> Lessons { get; init; }
+
+    /// <summary>The gallery in carousel order; empty when none (the page then falls back to <c>ThumbnailUrl</c>).</summary>
+    public IReadOnlyList<CourseImagePublicResponse> Images { get; init; } = [];
 
     /// <summary>Published courses this one includes, in order, with only their included lessons.</summary>
     public IReadOnlyList<IncludedCourseResponse> IncludedCourses { get; init; } = [];

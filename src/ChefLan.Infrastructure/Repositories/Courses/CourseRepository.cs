@@ -59,6 +59,8 @@ internal sealed class CourseRepository(CoursesDbContext context) : ICourseReposi
             .Take(query.PageSize)
             .Include(c => c.CourseCategories)
                 .ThenInclude(cc => cc.Category)
+            // Only the first image per course, loaded in the same round trip: it is the card image.
+            .Include(c => c.Images.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Take(1))
             .ToListAsync(cancellationToken);
 
         return PagedResult<Course>.Create(items, query.Page, query.PageSize, totalCount);
@@ -75,6 +77,7 @@ internal sealed class CourseRepository(CoursesDbContext context) : ICourseReposi
             .OnlyPublished()
             .Include(c => c.CourseCategories)
                 .ThenInclude(cc => cc.Category)
+            .Include(c => c.Images.OrderBy(i => i.SortOrder).ThenBy(i => i.Id))
             .Include(c => c.Lessons.Where(l => l.IsPublished).OrderBy(l => l.SortOrder).ThenBy(l => l.Id))
                 .ThenInclude(l => l.Videos.Where(v => v.IsPublished).OrderBy(v => v.SortOrder).ThenBy(v => v.Id))
             .FirstOrDefaultAsync(c => c.Slug == slug, cancellationToken);

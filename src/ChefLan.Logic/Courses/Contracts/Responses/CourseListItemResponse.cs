@@ -12,7 +12,11 @@ public sealed record CourseListItemResponse
 
     public string? Subtitle { get; init; }
 
+    /// <summary>The cover image (hero slider).</summary>
     public string? ThumbnailUrl { get; init; }
+
+    /// <summary>What the course card shows: the first gallery image, else <see cref="ThumbnailUrl"/>.</summary>
+    public string? CardImageUrl { get; init; }
 
     public required CourseLevel Level { get; init; }
 

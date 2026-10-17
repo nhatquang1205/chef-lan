@@ -149,7 +149,7 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
     {
         var courses = await context.Enrollments
             .AsNoTracking()
-            .Include(e => e.Course)
+            .Include(e => e.Course!).ThenInclude(c => c.Images.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Take(1))
             .Where(e => e.CustomerId == customerId
                 && e.Status == EnrollmentStatus.Active
                 && (e.ExpiresAt == null || e.ExpiresAt > utcNow)
@@ -158,7 +158,7 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
 
         var lessons = await context.LessonEnrollments
             .AsNoTracking()
-            .Include(e => e.Lesson!).ThenInclude(l => l.Course)
+            .Include(e => e.Lesson!).ThenInclude(l => l.Course!).ThenInclude(c => c.Images.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Take(1))
             .Where(e => e.CustomerId == customerId
                 && e.Status == EnrollmentStatus.Active
                 && (e.ExpiresAt == null || e.ExpiresAt > utcNow)

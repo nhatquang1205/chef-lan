@@ -314,6 +314,74 @@ namespace ChefLan.DB.Migrations.Courses
                     b.ToTable("course_categories", "courses");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseImage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Alt")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("alt");
+
+                    b.Property<long>("CourseId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("url");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id")
+                        .HasName("pk_course_images");
+
+                    b.HasIndex("CourseId", "SortOrder")
+                        .HasDatabaseName("ix_course_images_course_id_sort_order");
+
+                    b.ToTable("course_images", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_course_images_height_positive", "height IS NULL OR height > 0");
+
+                            t.HasCheckConstraint("ck_course_images_sort_order_non_negative", "sort_order >= 0");
+
+                            t.HasCheckConstraint("ck_course_images_width_positive", "width IS NULL OR width > 0");
+                        });
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseInclude", b =>
                 {
                     b.Property<long>("CourseId")
@@ -1318,6 +1386,18 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("Course");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseImage", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Course", "Course")
+                        .WithMany("Images")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_images_courses_course_id");
+
+                    b.Navigation("Course");
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.CourseInclude", b =>
                 {
                     b.HasOne("ChefLan.Domain.Courses.Entities.Course", "Course")
@@ -1439,6 +1519,8 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("CourseCategories");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("Images");
 
                     b.Navigation("IncludedIn");
 

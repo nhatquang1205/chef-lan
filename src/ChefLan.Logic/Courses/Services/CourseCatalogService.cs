@@ -88,6 +88,7 @@ internal sealed class CourseCatalogService(
             TotalDurationSeconds = course.TotalDurationSeconds,
             Categories = summary.Categories,
             Lessons = outline,
+            Images = course.Images.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Select(i => i.ToPublicResponse()).ToList(),
             IncludedCourses = includedCourses,
             IncludedIn = includedIn,
             TotalLessonCount = course.LessonCount + includedCourses.Sum(c => c.LessonCount),
