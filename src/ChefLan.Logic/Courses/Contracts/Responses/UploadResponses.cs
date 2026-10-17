@@ -1,6 +1,7 @@
 namespace ChefLan.Logic.Courses.Contracts.Responses;
 
-public sealed record UploadedImageResponse(string Url);
+/// <summary>Public URL of the stored WebP and its pixel size (lets the web reserve space).</summary>
+public sealed record UploadedImageResponse(string Url, int Width, int Height);
 
 /// <summary>
 /// <c>VideoId</c> goes into a lesson video's <c>externalId</c>. Bunny encodes after the upload,

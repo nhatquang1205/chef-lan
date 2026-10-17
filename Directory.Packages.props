@@ -6,6 +6,8 @@
   <ItemGroup>
     <!-- ChefLan.Commons -->
     <PackageVersion Include="AWSSDK.S3" Version="4.0.104.2" />
+    <PackageVersion Include="SkiaSharp" Version="4.153.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
     <PackageVersion Include="MailKit" Version="4.18.1" />
     <!-- Pinned (transitive pinning is on): MimeKit pulls in 10.0.0; 10.0.13 fixes CVE-2026-84008 and CVE-2026-70162. -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />

@@ -21,13 +21,13 @@ namespace ChefLan.Courses.API.Controllers.Admin;
 [Produces("application/json")]
 public sealed class AdminUploadsController(IMediaUploadService uploads) : ControllerBase
 {
-    private const int MaxImageBytes = 5 * 1024 * 1024;
+    private const int MaxImageBytes = 15 * 1024 * 1024;
     private const int MaxImageRequestBytes = MaxImageBytes + 1024 * 1024; // room for multipart framing
     private const long MaxVideoBytes = 8L * 1024 * 1024 * 1024;
     private const int MaxTitleLength = 200;
 
     /// <summary>
-    /// A JPEG, PNG or WebP up to 5 MB; returns the CDN URL. Two ways to send it:
+    /// A JPEG, PNG or WebP up to 15 MB; returns the CDN URL of the stored WebP (converted, longest side at most 1920 px, EXIF removed) with its width and height. Two ways to send it:
     /// <list type="bullet">
     ///   <item>the raw image as the request <b>body</b> (Postman: Body -> binary; curl:
     ///   <c>--data-binary @thumb.jpg</c>). The Content-Type header is ignored: the bytes decide.</item>
@@ -44,7 +44,7 @@ public sealed class AdminUploadsController(IMediaUploadService uploads) : Contro
             : await ReadBodyAsync(cancellationToken);
 
         return bytes is null
-            ? ProblemFor(Error.Validation("upload.image_too_large", "Images may be at most 5 MB."))
+            ? ProblemFor(Error.Validation("upload.image_too_large", "Images may be at most 15 MB."))
             : (await uploads.UploadImageAsync(bytes, cancellationToken)).ToActionResult(this);
     }
 

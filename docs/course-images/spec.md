@@ -48,7 +48,7 @@ Max **20 images per course** (400 `course.too_many_images`). Migration is additi
 
 | # | Repo | Plan | Status |
 |---|---|---|---|
-| B1 | chef-lan | [WebP pipeline for every image upload](plans/01-webp-pipeline.md) | todo |
+| B1 | chef-lan | [WebP pipeline for every image upload](plans/01-webp-pipeline.md) | done |
 | B2 | chef-lan | [Course images: table, admin API, public API](plans/02-course-images.md) | todo |
 | W  | chef-lan-web | `docs/plans/03-course-images.md` | todo |
 | A  | chef-lan-admin | `docs/plans/17-course-images.md` | todo |

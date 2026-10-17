@@ -5,6 +5,7 @@ using ChefLan.Infrastructure.Repositories.Customers;
 using ChefLan.Infrastructure.Repositories.Identity;
 using ChefLan.Infrastructure.Seed;
 using ChefLan.Infrastructure.Services.Email;
+using ChefLan.Infrastructure.Services.Images;
 using ChefLan.Infrastructure.Services.Storage;
 using ChefLan.Infrastructure.Services.Video;
 using ChefLan.Logic.Abstractions;
@@ -107,6 +108,7 @@ public static class InfrastructureServiceCollectionExtensions
         // without them still runs. Video uploads can run for a long time, so that client has no timeout
         // (the request's cancellation token ends it).
         services.AddSingleton<IFileStorage, B2FileStorage>();
+        services.AddSingleton<IImageProcessor, SkiaImageProcessor>();
 
         services.AddHttpClient<IVideoHost, BunnyVideoHost>((sp, client) =>
         {
