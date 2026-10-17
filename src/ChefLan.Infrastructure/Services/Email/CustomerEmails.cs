@@ -9,7 +9,7 @@ namespace ChefLan.Infrastructure.Services.Email;
 
 /// <summary>
 /// Fills the embedded templates (<c>Templates/</c>). Every value is HTML-encoded for the HTML part: the customer's
-/// name is typed by staff and must not be able to inject markup. The logo is attached inline (<c>cid:logo</c>) so it
+/// name is typed by staff and must not be able to inject markup. The logo is attached inline (<c>cid:logo@bonbocon</c>) so it
 /// shows even when the mail client blocks remote images.
 /// </summary>
 internal sealed class CustomerEmails(IOptions<PublicSiteOptions> site) : ICustomerEmails
@@ -47,7 +47,7 @@ internal sealed class CustomerEmails(IOptions<PublicSiteOptions> site) : ICustom
             "Bon Bocon — Mời bạn kích hoạt tài khoản học",
             Fill(InvitationHtml.Value, values, WebUtility.HtmlEncode),
             Fill(InvitationText.Value, values, value => value),
-            [new EmailInlineImage("logo", "logo.png", "image/png", Logo.Value)]);
+            [new EmailInlineImage("logo@bonbocon", "logo.png", "image/png", Logo.Value)]);
     }
 
     private static string Fill(string template, IReadOnlyDictionary<string, string> values, Func<string, string> encode)

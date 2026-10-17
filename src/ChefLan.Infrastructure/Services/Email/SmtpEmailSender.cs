@@ -57,7 +57,9 @@ internal sealed class SmtpEmailSender(IOptions<SmtpOptions> options, ILogger<Smt
         foreach (var image in message.InlineImages ?? [])
         {
             var resource = body.LinkedResources.Add(image.FileName, image.Content, ContentType.Parse(image.ContentType));
+            // RFC 2392: the Content-Id is an addr-spec (local@domain); clients resolve the HTML's cid: through it alone.
             resource.ContentId = image.ContentId;
+            resource.ContentLocation = null;
         }
 
         mime.Body = body.ToMessageBody();
