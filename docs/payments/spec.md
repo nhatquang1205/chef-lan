@@ -35,8 +35,8 @@ SePay returns it in the notification, so the order is found by **exact invoice n
 searched for a code (squashed to A-Z/0-9, `OrderCodes.FindCandidates`); every candidate is tried until one names an order.
 
 `PaymentInstructions.For` builds the form: `merchant`, `currency=VND`, `order_amount`, `operation=PURCHASE`, `order_description`,
-`order_invoice_number`, `payment_method=BANK_TRANSFER`, `success_url` / `error_url` / `cancel_url` (all `{site}/checkout/{code}?result=...`),
-and `signature` = Base64 of HMAC-SHA256 over `name=value` pairs joined by commas, in SePay's fixed order
+`order_invoice_number`, `success_url` / `error_url` / `cancel_url` (all `{site}/checkout/{code}?result=...`),
+and (no `payment_method`: SePay fills it in when the merchant has one method enabled, else the customer chooses on its page), and `signature` = Base64 of HMAC-SHA256 over `name=value` pairs joined by commas, in SePay's fixed order
 (`order_amount, merchant, currency, operation, order_description, order_invoice_number, customer_id, payment_method, success_url,
 error_url, cancel_url`), skipping empty values. The merchant **Secret Key** signs it and never leaves the server. The test pins the
 algorithm with a signature computed outside .NET.

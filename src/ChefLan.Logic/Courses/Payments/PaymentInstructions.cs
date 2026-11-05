@@ -25,6 +25,7 @@ public static class PaymentInstructions
     {
         var page = $"{settings.SiteBaseUrl.TrimEnd('/')}/checkout/{Uri.EscapeDataString(code)}";
 
+        // No payment_method: SePay fills it in when the merchant has one method enabled, and otherwise lets the customer choose.
         // Form order follows SePay's sample form; the signature does not depend on it, but SePay asks to keep it.
         var values = new List<KeyValuePair<string, string>>
         {
@@ -34,7 +35,6 @@ public static class PaymentInstructions
             new("operation", "PURCHASE"),
             new("order_description", $"Bon Bocon {code}"),
             new("order_invoice_number", code),
-            new("payment_method", "BANK_TRANSFER"),
             new("success_url", $"{page}?result=success"),
             new("error_url", $"{page}?result=error"),
             new("cancel_url", $"{page}?result=cancel"),

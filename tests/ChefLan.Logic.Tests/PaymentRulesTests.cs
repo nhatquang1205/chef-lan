@@ -193,10 +193,9 @@ public class PaymentInstructionsTests
         Assert.Equal("SP-TEST-1", Field("merchant"));
         Assert.Equal("1000000", Field("order_amount"));
         Assert.Equal("BB7K2M9Q", Field("order_invoice_number"));
-        Assert.Equal("BANK_TRANSFER", Field("payment_method"));
         Assert.Equal("https://shop.example/checkout/BB7K2M9Q?result=success", Field("success_url"));
         // HMAC-SHA256 (Base64) of the comma-joined name=value pairs in SePay's order, key "test-secret": computed outside .NET.
-        Assert.Equal("hsiKxIcfNHXXzc7EfyTsqjrEWO5kUMwVILT/jifUH14=", Field("signature"));
+        Assert.Equal("DWlImy5jZXGPmClpB6uTo0M26ZPNOQwRIyrd082ZRVQ=", Field("signature"));
         Assert.Equal("signature", form.Fields[^1].Name);
     }
 
@@ -207,6 +206,7 @@ public class PaymentInstructionsTests
 
         Assert.DoesNotContain(form.Fields, f => f.Value.Contains("test-secret"));
         Assert.DoesNotContain(form.Fields, f => f.Name == "customer_id");
+        Assert.DoesNotContain(form.Fields, f => f.Name == "payment_method");
 
         var withExtra = PaymentInstructions.Sign(
             [new("order_amount", "1000"), new("merchant", "M"), new("customer_id", ""), new("lang", "vi")],
