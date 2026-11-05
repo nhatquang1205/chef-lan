@@ -16,6 +16,7 @@ involved. Staff only deal with what the matching could not decide. This is SePay
 | Fulfilment | One method (`OrderFulfilment.MarkPaidAsync`) for the webhook and both staff paths. It sets the order Paid and calls `GrantCourseAsync` / `GrantLessonAsync` (source `OnlineCheckout`) in one SaveChanges |
 | Realtime | The website **polls** `GET /orders/{code}` (3 s, then 8 s). No SignalR: one event per purchase, and a status endpoint is needed as the fallback anyway |
 | Where it lives | Courses domain, `courses` schema: it grants enrollments and points at customers, courses and lessons, so no cross-domain seam |
+| Contact orders | A customer may instead choose **ContactChef** (`orders.payment_method` = 2; 1 = BankTransfer, the default). It needs no SePay, so it works while checkout is off; the order has no `payment` form, lives `Payment:ContactOrderLifetimeDays` (7), and staff approve it with `POST orders/{id}/mark-paid` (also after it expired). Asking again for the same item with the other method keeps the order and its code and resets `expiresAt` |
 | Off switch | Without `Payment:BankCode/AccountNumber/AccountName` and `Payment:SePay:IpnApiKey`, checkout is off (`GET /checkout/config` says so) and the site keeps "contact chef Lan" |
 
 ## Data (migration `AddOrdersAndPayments`, additive)
@@ -58,7 +59,7 @@ notification. A retry of the same notification returns the stored outcome; one s
 arrived before its order was visible). The customer already owning the item (a race with a staff grant) pays the order and
 flags the transaction Duplicate. Expiry is **lazy**: a Pending order past `expires_at` reads as Expired.
 
-Staff tools (`/api/v1/admins`): `GET orders`, `GET payments?status=flagged|all|<status>`, `POST orders/{id}/mark-paid`
+Staff tools (`/api/v1/admins`): `GET orders?status=&paymentMethod=&customerId=&q=&page=&pageSize=` (`status` is the effective status, so Expired includes Pending past its deadline; `q` matches code, customer name, email, phone), `GET payments?status=flagged|all|<status>`, `POST orders/{id}/mark-paid`
 (reason required, optional transaction), `POST payments/{id}/link` (attach a transaction to an order and pay it),
 `POST orders/{id}/cancel`. How an order was paid is on the order itself; there is no separate event table.
 
@@ -85,11 +86,12 @@ no CORS). The sandbox address is not in SePay's pages we read: take it from thei
 
 A timer job that re-matches Unmatched/LateAfterExpiry transactions; a daily gap check against SePay's order API (`GET https://pgapi.sepay.vn/v1/order/detail/{id}`, needs API credentials); a
 daily report of paid orders vs matched transactions; a refund action (staff revoke access with the existing revoke endpoints
-and refund the money by hand); order history for admins by customer; invoices (hóa đơn điện tử).
+and refund the money by hand); invoices (hóa đơn điện tử).
 
 ## Plans
 
 | # | Repo | Plan | Status |
 |---|---|---|---|
 | B1 | chef-lan | [Schema, orders, reconciliation, IPN, admin API](plans/01-orders-and-ipn.md) | done |
+| B2 | chef-lan | [Contact orders and the admin order list](plans/02-contact-orders-and-admin-list.md) | done |
 | W | chef-lan-web | `docs/plans/` checkout page + buy button | see that repo |

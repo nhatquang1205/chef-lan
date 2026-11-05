@@ -2,6 +2,7 @@ using ChefLan.Commons.Pagination;
 using ChefLan.DB.Contexts;
 using ChefLan.Domain.Courses.Entities;
 using ChefLan.Domain.Enums;
+using ChefLan.Logic.Courses.Contracts.Requests;
 using ChefLan.Logic.Courses.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -58,9 +59,45 @@ internal sealed class OrderRepository(CoursesDbContext context) : IOrderReposito
             .Take(take)
             .ToListAsync(cancellationToken);
 
-    public async Task<PagedResult<Order>> ListAsync(OrderStatus? status, PagedRequest paging, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Order>> ListAsync(
+        AdminOrderFilter filter,
+        DateTime utcNow,
+        PagedRequest paging,
+        CancellationToken cancellationToken = default)
     {
-        var query = context.Orders.AsNoTracking().Where(o => status == null || o.Status == status);
+        var query = context.Orders.AsNoTracking();
+
+        // Mirrors Order.EffectiveStatus.
+        query = filter.Status switch
+        {
+            OrderStatus.Pending => query.Where(o => o.Status == OrderStatus.Pending && o.ExpiresAt > utcNow),
+            OrderStatus.Expired => query.Where(o => o.Status == OrderStatus.Expired
+                || (o.Status == OrderStatus.Pending && o.ExpiresAt <= utcNow)),
+            { } stored => query.Where(o => o.Status == stored),
+            null => query,
+        };
+
+        if (filter.PaymentMethod is { } method)
+        {
+            query = query.Where(o => o.PaymentMethod == method);
+        }
+
+        if (filter.CustomerId is { } customerId)
+        {
+            query = query.Where(o => o.CustomerId == customerId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Q))
+        {
+            var term = filter.Q.Trim();
+            var pattern = LikePattern.Contains(term);
+            query = query.Where(o =>
+                EF.Functions.ILike(o.Code, pattern, LikePattern.EscapeCharacter)
+                || (o.Customer != null
+                    && (EF.Functions.ILike(o.Customer.FullName, pattern, LikePattern.EscapeCharacter)
+                        || (o.Customer.Email != null && EF.Functions.ILike(o.Customer.Email, pattern, LikePattern.EscapeCharacter))
+                        || (o.Customer.Phone != null && EF.Functions.ILike(o.Customer.Phone, pattern, LikePattern.EscapeCharacter)))));
+        }
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query

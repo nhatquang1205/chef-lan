@@ -29,14 +29,18 @@ public sealed class AdminOrdersController(IOrderService orders, IPaymentService 
         PaymentMatchStatus.Overpaid,
     ];
 
-    /// <summary>Orders, newest first. <c>status</c> filters on the stored status (Pending, Paid, Cancelled).</summary>
+    /// <summary>
+    /// Orders, newest first. <c>status</c> is the status the response shows (a Pending order past its deadline is
+    /// Expired); <c>paymentMethod</c> is BankTransfer or ContactChef; <c>customerId</c> narrows to one customer;
+    /// <c>q</c> matches the order code or the customer's name, email or phone.
+    /// </summary>
     [HttpGet("orders")]
     [ProducesResponseType(typeof(PagedResult<AdminOrderResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<AdminOrderResponse>>> ListOrders(
-        [FromQuery] OrderStatus? status,
+        [FromQuery] AdminOrderFilter filter,
         [FromQuery] PagedRequest paging,
         CancellationToken cancellationToken) =>
-        Ok(await orders.ListAsync(status, paging, cancellationToken));
+        Ok(await orders.ListAsync(filter, paging, cancellationToken));
 
     /// <summary>
     /// Confirms a payment by hand: grants the access. A reason is required and recorded with who did it. Pass a bank

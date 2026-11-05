@@ -49,3 +49,13 @@ Refunds, staff notification on a new contact order, changing the amount on appro
 API with SePay unset: a contact order is created, `/checkout/config` still says disabled, a transfer order is 503, each
 admin filter works, including `status=Expired` on a backdated order, and mark-paid grants access. `q=%` must not return
 everything. Test data removed afterwards. Add implementation notes here.
+
+## Implementation notes
+
+Done as planned; migration `AddOrderPaymentMethod` (additive: column default 1 plus `ck_orders_payment_method`). Differences and details:
+
+- The filter record is `AdminOrderFilter` in `Contracts/Requests/OrderRequests.cs`, bound with `[FromQuery]` next to `PagedRequest`; `IOrderService.ListAsync(filter, paging)` and `IOrderRepository.ListAsync(filter, utcNow, paging)`. A validator caps `q` at 100 characters.
+- `q` uses `LikePattern.Contains` (the shared escaping helper) and ILIKE on code, name, email, phone. `q=%` and `q=_` returned nothing.
+- An unknown `status`/`paymentMethod` value is a 400 from model binding.
+- Tests: 8 new in `OrderServiceTests.cs` (61 in total). Stubs for the large repository ports use a small `DispatchProxy` helper rather than full fakes; `FakeOrderRepository.FindPendingForItemAsync` and the fake quote are now real.
+- Verified against the local API (SePay unset): `/checkout/config` `{"enabled":false}`; transfer order 503; contact order 200 with `payment: null`, 7-day expiry; filters status Pending/Expired (backdated order), paymentMethod, customerId, q (name, phone, email, code, case-insensitive); mark-paid on the expired contact order 200 and the course appeared in `/me/courses`; second mark-paid 409 `order.already_paid`. Switching method to BankTransfer through the API could not be run (checkout is off locally); it is covered by a unit test. Test customer and orders were removed.

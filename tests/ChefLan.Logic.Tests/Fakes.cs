@@ -30,6 +30,8 @@ internal sealed class FakeWorld
     /// <summary>Makes the next transaction insert fail as if another request stored the same notification first.</summary>
     public bool NextInsertLosesRace { get; set; }
 
+    public decimal QuotePrice { get; set; } = 1_000_000;
+
     private long _nextId = 1;
 
     public FakeSettings Settings { get; } = new();
@@ -74,7 +76,7 @@ internal sealed class FakeSettings : IPaymentSettings
 {
     public string Provider => "SePay";
 
-    public bool CheckoutEnabled => true;
+    public bool CheckoutEnabled { get; set; } = true;
 
     public string MerchantId => "SP-TEST-1";
 
@@ -87,6 +89,8 @@ internal sealed class FakeSettings : IPaymentSettings
     public string CodePrefix => "BB";
 
     public TimeSpan OrderLifetime => TimeSpan.FromHours(24);
+
+    public TimeSpan ContactOrderLifetime => TimeSpan.FromDays(7);
 
     public bool VerifyIpnSecret(string? presented) => presented == "ipn-secret";
 }
@@ -140,7 +144,10 @@ internal sealed class FakeOrderRepository(FakeWorld world) : IOrderRepository
         Task.FromResult(world.Orders.FirstOrDefault(o => o.Id == id));
 
     public Task<Order?> FindPendingForItemAsync(long customerId, OrderItemKind kind, long targetId, DateTime utcNow, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        Task.FromResult(world.Orders.FirstOrDefault(o => o.CustomerId == customerId
+            && o.Status == OrderStatus.Pending
+            && o.ExpiresAt > utcNow
+            && o.Items.Any(i => i.Kind == kind && (i.CourseId == targetId || i.LessonId == targetId))));
 
     public Task<bool> CodeExistsAsync(string code, CancellationToken cancellationToken = default) =>
         Task.FromResult(world.Orders.Any(o => o.Code == code));
@@ -148,7 +155,7 @@ internal sealed class FakeOrderRepository(FakeWorld world) : IOrderRepository
     public Task<IReadOnlyList<Order>> ListForCustomerAsync(long customerId, int take, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task<PagedResult<Order>> ListAsync(OrderStatus? status, PagedRequest paging, CancellationToken cancellationToken = default) =>
+    public Task<PagedResult<Order>> ListAsync(AdminOrderFilter filter, DateTime utcNow, PagedRequest paging, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
     public void Add(Order order) => world.Orders.Add(order);
@@ -214,5 +221,6 @@ internal sealed class FakeEnrollmentService(FakeWorld world) : IEnrollmentServic
 
     public Task<Result<CourseAccessResponse>> GetCourseAccessAsync(string courseSlug, long customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<Result<CourseQuoteResponse>> QuoteCourseAsync(long courseId, long customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<Result<CourseQuoteResponse>> QuoteCourseAsync(long courseId, long customerId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<Result<CourseQuoteResponse>>(new CourseQuoteResponse(world.QuotePrice, [], world.QuotePrice));
 }

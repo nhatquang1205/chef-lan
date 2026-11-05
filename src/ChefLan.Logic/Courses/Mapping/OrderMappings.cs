@@ -16,12 +16,13 @@ public static class OrderMappings
         {
             Code = order.Code,
             Status = status,
+            PaymentMethod = order.PaymentMethod,
             AmountVnd = order.AmountVnd,
             CreatedAt = order.CreatedAt,
             ExpiresAt = order.ExpiresAt,
             PaidAt = order.PaidAt,
             Items = order.Items.Select(ToResponse).ToList(),
-            Payment = status == OrderStatus.Pending ? PaymentInstructions.For(settings, order.Code, order.AmountVnd) : null,
+            Payment = status == OrderStatus.Pending && order.PaymentMethod == OrderPaymentMethod.BankTransfer ? PaymentInstructions.For(settings, order.Code, order.AmountVnd) : null,
         };
     }
 
@@ -30,10 +31,12 @@ public static class OrderMappings
         Id = order.Id,
         Code = order.Code,
         Status = order.EffectiveStatus(utcNow),
+        PaymentMethod = order.PaymentMethod,
         AmountVnd = order.AmountVnd,
         CustomerId = order.CustomerId,
         CustomerName = order.Customer?.FullName,
         CustomerEmail = order.Customer?.Email,
+        CustomerPhone = order.Customer?.Phone,
         CreatedAt = order.CreatedAt,
         ExpiresAt = order.ExpiresAt,
         PaidAt = order.PaidAt,

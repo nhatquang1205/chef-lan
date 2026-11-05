@@ -30,6 +30,9 @@ public interface IPaymentSettings
 
     TimeSpan OrderLifetime { get; }
 
+    /// <summary>How long a contact order is held. Past it the customer is told so; staff can still approve it.</summary>
+    TimeSpan ContactOrderLifetime { get; }
+
     /// <summary>
     /// Does the secret a notification presented match the IPN secret configured in SePay? Compared in constant
     /// time; false when none is configured.

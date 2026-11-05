@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace ChefLan.DB.Configurations.Courses;
 
 /// <summary>
-/// courses.orders — a customer's request to buy, paid by bank transfer. Not soft-deletable: a money record.
+/// courses.orders — a customer's request to buy, paid by bank transfer or arranged with chef Lan. Not soft-deletable: a money record.
 /// </summary>
 public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
@@ -15,6 +15,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.ToTable("orders", ChefLanSchemas.Courses, t =>
         {
             t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
+            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2)");
             t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
             t.HasCheckConstraint("ck_orders_amount_positive", "amount_vnd > 0");
             t.HasCheckConstraint("ck_orders_paid_has_date", "status <> 2 OR paid_at IS NOT NULL");
@@ -34,6 +35,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasConversion<int>()
             .HasDefaultValue(OrderStatus.Pending)
             .HasComment("1=Pending, 2=Paid, 3=Expired, 4=Cancelled. Expiry is lazy: Pending past expires_at reads as Expired");
+
+        builder.Property(o => o.PaymentMethod)
+            .HasConversion<int>()
+            .HasDefaultValue(OrderPaymentMethod.BankTransfer)
+            .HasComment("1=BankTransfer, 2=ContactChef");
 
         builder.Property(o => o.AmountVnd)
             .HasPrecision(12, 0)

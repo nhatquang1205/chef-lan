@@ -25,6 +25,8 @@ public sealed record OrderResponse
 
     public required OrderStatus Status { get; init; }
 
+    public required OrderPaymentMethod PaymentMethod { get; init; }
+
     public required decimal AmountVnd { get; init; }
 
     public required DateTime CreatedAt { get; init; }
@@ -35,7 +37,7 @@ public sealed record OrderResponse
 
     public required IReadOnlyList<OrderItemResponse> Items { get; init; }
 
-    /// <summary>Null once the order is no longer payable.</summary>
+    /// <summary>Null once the order is no longer payable, and always null for a contact order.</summary>
     public PaymentInstructionsResponse? Payment { get; init; }
 }
 
@@ -48,6 +50,8 @@ public sealed record AdminOrderResponse
 
     public required OrderStatus Status { get; init; }
 
+    public required OrderPaymentMethod PaymentMethod { get; init; }
+
     public required decimal AmountVnd { get; init; }
 
     public required long CustomerId { get; init; }
@@ -55,6 +59,8 @@ public sealed record AdminOrderResponse
     public string? CustomerName { get; init; }
 
     public string? CustomerEmail { get; init; }
+
+    public string? CustomerPhone { get; init; }
 
     public required DateTime CreatedAt { get; init; }
 

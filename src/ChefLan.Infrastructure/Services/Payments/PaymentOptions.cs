@@ -22,6 +22,8 @@ public sealed class PaymentOptions : IPaymentSettings
     /// <summary>How long an order stays payable. Long on purpose: people pay hours later.</summary>
     public int OrderLifetimeMinutes { get; set; } = 1440;
 
+    public int ContactOrderLifetimeDays { get; set; } = 7;
+
     public SePayOptions SePay { get; set; } = new();
 
     /// <summary>Filled from Web:PublicBaseUrl (the customer website), which the mails already need.</summary>
@@ -34,6 +36,8 @@ public sealed class PaymentOptions : IPaymentSettings
     public string CheckoutUrl => SePay.CheckoutUrl;
 
     public TimeSpan OrderLifetime => TimeSpan.FromMinutes(OrderLifetimeMinutes);
+
+    public TimeSpan ContactOrderLifetime => TimeSpan.FromDays(ContactOrderLifetimeDays);
 
     public bool VerifyIpnSecret(string? presented)
     {

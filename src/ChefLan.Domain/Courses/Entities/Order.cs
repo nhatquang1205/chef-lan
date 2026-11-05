@@ -5,7 +5,7 @@ using ChefLan.Domain.Enums;
 namespace ChefLan.Domain.Courses.Entities;
 
 /// <summary>
-/// A customer's request to buy a course or a single lesson, paid by bank transfer. The
+/// A customer's request to buy a course or a single lesson, paid on the provider's page (bank transfer) or arranged with chef Lan (contact). The
 /// <see cref="Code"/> goes in the transfer note and is how a bank transaction finds its order.
 /// The amount is fixed from the server-side quote when the order is created.
 ///
@@ -19,6 +19,8 @@ public class Order : AuditableEntity, IHasRowVersion
     public long CustomerId { get; set; }
 
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
+
+    public OrderPaymentMethod PaymentMethod { get; set; } = OrderPaymentMethod.BankTransfer;
 
     public decimal AmountVnd { get; set; }
 

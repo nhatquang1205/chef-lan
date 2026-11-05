@@ -37,7 +37,7 @@ internal sealed class OrderService(
         CreateOrderRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!settings.CheckoutEnabled)
+        if (request.Method == OrderPaymentMethod.BankTransfer && !settings.CheckoutEnabled)
         {
             return OrderErrors.CheckoutDisabled;
         }
@@ -77,6 +77,13 @@ internal sealed class OrderService(
         {
             if (existing.AmountVnd == item.Value.UnitPriceVnd)
             {
+                if (existing.PaymentMethod != request.Method)
+                {
+                    existing.PaymentMethod = request.Method;
+                    existing.ExpiresAt = now + LifetimeOf(request.Method);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
                 return existing.ToResponse(settings, now);
             }
 
@@ -89,7 +96,8 @@ internal sealed class OrderService(
             Code = await NewCodeAsync(cancellationToken),
             CustomerId = customerId,
             AmountVnd = item.Value.UnitPriceVnd,
-            ExpiresAt = now + settings.OrderLifetime,
+            PaymentMethod = request.Method,
+            ExpiresAt = now + LifetimeOf(request.Method),
             Items = [item.Value],
         };
 
@@ -140,12 +148,12 @@ internal sealed class OrderService(
     }
 
     public async Task<PagedResult<AdminOrderResponse>> ListAsync(
-        OrderStatus? status,
+        AdminOrderFilter filter,
         PagedRequest paging,
         CancellationToken cancellationToken = default)
     {
         var now = clock.UtcNow;
-        var page = await orders.ListAsync(status, paging, cancellationToken);
+        var page = await orders.ListAsync(filter, now, paging, cancellationToken);
 
         return PagedResult<AdminOrderResponse>.Create(
             page.Items.Select(o => o.ToAdminResponse(now)).ToList(),
@@ -322,6 +330,9 @@ internal sealed class OrderService(
             UnitPriceVnd = price,
         };
     }
+
+    private TimeSpan LifetimeOf(OrderPaymentMethod method) =>
+        method == OrderPaymentMethod.ContactChef ? settings.ContactOrderLifetime : settings.OrderLifetime;
 
     private async Task<string> NewCodeAsync(CancellationToken cancellationToken)
     {

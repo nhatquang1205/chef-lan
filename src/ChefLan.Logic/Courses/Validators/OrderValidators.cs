@@ -11,6 +11,7 @@ internal sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrde
             .Must(x => string.IsNullOrWhiteSpace(x.CourseSlug) == (x.LessonId is not null))
             .OverridePropertyName("Item")
             .WithMessage("Give exactly one of courseSlug or lessonId.");
+        RuleFor(x => x.Method).IsInEnum();
         RuleFor(x => x.CourseSlug).MaximumLength(200);
         RuleFor(x => x.LessonId!.Value).GreaterThan(0).OverridePropertyName(nameof(CreateOrderRequest.LessonId)).When(x => x.LessonId is not null);
     }
@@ -32,5 +33,13 @@ internal sealed class LinkPaymentRequestValidator : AbstractValidator<LinkPaymen
     public LinkPaymentRequestValidator()
     {
         RuleFor(x => x.OrderId).GreaterThan(0);
+    }
+}
+
+internal sealed class AdminOrderFilterValidator : AbstractValidator<AdminOrderFilter>
+{
+    public AdminOrderFilterValidator()
+    {
+        RuleFor(x => x.Q).MaximumLength(100);
     }
 }

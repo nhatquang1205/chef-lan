@@ -1039,6 +1039,13 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnName("paid_via")
                         .HasComment("1=Webhook, 2=Manual");
 
+                    b.Property<int>("PaymentMethod")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("payment_method")
+                        .HasComment("1=BankTransfer, 2=ContactChef");
+
                     b.Property<long?>("PaymentTransactionId")
                         .HasColumnType("bigint")
                         .HasColumnName("payment_transaction_id")
@@ -1087,6 +1094,8 @@ namespace ChefLan.DB.Migrations.Courses
                             t.HasCheckConstraint("ck_orders_paid_has_date", "status <> 2 OR paid_at IS NOT NULL");
 
                             t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
+
+                            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2)");
 
                             t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
                         });

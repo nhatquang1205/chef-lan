@@ -327,6 +327,7 @@ browser POSTs to SePay's hosted payment page. SePay's IPN (`POST /api/v1/payment
 `order_invoice_number` (= our order code) and pays it: `OrderFulfilment.MarkPaidAsync` is the only way an order becomes Paid (webhook, staff mark-paid,
 staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the same SaveChanges. Things that bite:
 
+- **Contact orders:** `CreateOrderRequest.Method` is `BankTransfer` (default) or `ContactChef`. Only BankTransfer needs SePay (`CheckoutDisabled` 503 otherwise); a contact order has `payment: null`, lasts `Payment:ContactOrderLifetimeDays` (7) and is approved by staff through the same `mark-paid`, expired or not. Re-requesting the item with the other method switches the waiting order and keeps its code. `GET /api/v1/admins/orders` filters by `status` (EFFECTIVE status), `paymentMethod`, `customerId`, `q`.
 - **The transaction is stored first** and `(provider, provider_transaction_id)` is unique: that is the idempotency, so a retried
   notification is harmless. Never match before storing.
 - **Two different secrets:** `Payment:SePay:SecretKey` (merchant Secret Key, signs the form) and `Payment:SePay:IpnSecret` (IPN tab, checked on the
