@@ -982,6 +982,310 @@ namespace ChefLan.DB.Migrations.Courses
                         });
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Order", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("amount_vnd")
+                        .HasComment("From the server-side quote when the order was created");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code")
+                        .HasComment("Goes in the bank transfer note; how a transaction finds its order");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("customer_id");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("paid_at");
+
+                    b.Property<long?>("PaidByStaffId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("paid_by_staff_id")
+                        .HasComment("identity.users.id — by id only, no FK, so courses does not depend on identity");
+
+                    b.Property<string>("PaidReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("paid_reason");
+
+                    b.Property<int?>("PaidVia")
+                        .HasColumnType("integer")
+                        .HasColumnName("paid_via")
+                        .HasComment("1=Webhook, 2=Manual");
+
+                    b.Property<long?>("PaymentTransactionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("payment_transaction_id")
+                        .HasComment("payment_transactions.id of the bank transaction that paid it. No FK: the two tables point at each other");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("status")
+                        .HasComment("1=Pending, 2=Paid, 3=Expired, 4=Cancelled. Expiry is lazy: Pending past expires_at reads as Expired");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_orders");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("uq_orders_code");
+
+                    b.HasIndex("CustomerId", "Status")
+                        .HasDatabaseName("ix_orders_customer_id_status");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_orders_status_created_at");
+
+                    b.ToTable("orders", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_orders_amount_positive", "amount_vnd > 0");
+
+                            t.HasCheckConstraint("ck_orders_manual_has_reason", "paid_via IS DISTINCT FROM 2 OR paid_reason IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_orders_paid_has_date", "status <> 2 OR paid_at IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
+
+                            t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
+                        });
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.OrderItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CourseId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("course_id");
+
+                    b.Property<string>("CourseSlug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("course_slug");
+
+                    b.Property<string>("DiscountReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("discount_reason");
+
+                    b.Property<decimal>("DiscountVnd")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_vnd");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind")
+                        .HasComment("1=Course, 2=Lesson");
+
+                    b.Property<long?>("LessonId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("lesson_id");
+
+                    b.Property<decimal>("ListPriceVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("list_price_vnd");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<decimal>("UnitPriceVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("unit_price_vnd");
+
+                    b.HasKey("Id")
+                        .HasName("pk_order_items");
+
+                    b.HasIndex("CourseId")
+                        .HasDatabaseName("ix_order_items_course_id")
+                        .HasFilter("course_id IS NOT NULL");
+
+                    b.HasIndex("LessonId")
+                        .HasDatabaseName("ix_order_items_lesson_id")
+                        .HasFilter("lesson_id IS NOT NULL");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("ix_order_items_order_id");
+
+                    b.ToTable("order_items", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_order_items_kind", "kind IN (1, 2)");
+
+                            t.HasCheckConstraint("ck_order_items_prices", "list_price_vnd >= 0 AND discount_vnd >= 0 AND unit_price_vnd = list_price_vnd - discount_vnd");
+
+                            t.HasCheckConstraint("ck_order_items_target", "(kind = 1 AND course_id IS NOT NULL AND lesson_id IS NULL) OR (kind = 2 AND lesson_id IS NOT NULL AND course_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.PaymentTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("account_number");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("amount_vnd");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<int>("MatchStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("match_status")
+                        .HasComment("1=Unmatched, 2=Matched, 3=Overpaid, 4=Underpaid, 5=LateAfterExpiry, 6=Duplicate, 7=Ignored");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<long?>("OrderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("provider_transaction_id");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("text")
+                        .HasColumnName("raw_payload")
+                        .HasComment("The notification body exactly as received. Not jsonb: it may not be valid JSON");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateTime?>("TransactionDate")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("transaction_date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_transactions");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("ix_payment_transactions_order_id")
+                        .HasFilter("order_id IS NOT NULL");
+
+                    b.HasIndex("MatchStatus", "CreatedAt")
+                        .HasDatabaseName("ix_payment_transactions_match_status_created_at");
+
+                    b.HasIndex("Provider", "ProviderTransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_payment_transactions_provider_provider_transaction_id");
+
+                    b.ToTable("payment_transactions", "courses", t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_transactions_amount_non_negative", "amount_vnd >= 0");
+
+                            t.HasCheckConstraint("ck_payment_transactions_match_status", "match_status IN (1, 2, 3, 4, 5, 6, 7)");
+                        });
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Customers.Entities.Customer", b =>
                 {
                     b.Property<long>("Id")
@@ -1485,6 +1789,53 @@ namespace ChefLan.DB.Migrations.Courses
                     b.Navigation("Lesson");
                 });
 
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Order", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Customers.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_orders_customers_customer_id");
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.OrderItem", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_order_items_courses_course_id");
+
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Lesson", null)
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_order_items_lessons_lesson_id");
+
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_order_items_orders_order_id");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.PaymentTransaction", b =>
+                {
+                    b.HasOne("ChefLan.Domain.Courses.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payment_transactions_orders_order_id");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("ChefLan.Domain.Customers.Entities.CustomerRefreshToken", b =>
                 {
                     b.HasOne("ChefLan.Domain.Customers.Entities.Customer", "Customer")
@@ -1532,6 +1883,11 @@ namespace ChefLan.DB.Migrations.Courses
             modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Lesson", b =>
                 {
                     b.Navigation("Videos");
+                });
+
+            modelBuilder.Entity("ChefLan.Domain.Courses.Entities.Order", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("ChefLan.Domain.Customers.Entities.Customer", b =>

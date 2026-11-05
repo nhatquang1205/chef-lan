@@ -14,6 +14,10 @@ public static class RateLimitPolicies
     public const string AuthRegister = "auth-register";
 
     public const string AuthRefresh = "auth-refresh";
+
+    public const string OrdersCreate = "orders-create";
+
+    public const string PaymentsIpn = "payments-ipn";
 }
 
 public sealed class RateLimitPolicyOptions
@@ -40,6 +44,8 @@ public static class RateLimitingConfiguration
         [RateLimitPolicies.AuthLogin] = new() { PermitLimit = 5, WindowSeconds = 60 },
         [RateLimitPolicies.AuthRegister] = new() { PermitLimit = 3, WindowSeconds = 60 },
         [RateLimitPolicies.AuthRefresh] = new() { PermitLimit = 20, WindowSeconds = 60 },
+        [RateLimitPolicies.OrdersCreate] = new() { PermitLimit = 10, WindowSeconds = 60 },
+        [RateLimitPolicies.PaymentsIpn] = new() { PermitLimit = 120, WindowSeconds = 60 },
     };
 
     public static IServiceCollection AddChefLanRateLimiting(

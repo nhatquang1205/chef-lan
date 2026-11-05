@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pure logic tests: reconciliation rules, order codes, notification parsing, and the payment flow over in-memory fakes.
+       Database behaviour (partial indexes, xmin concurrency) needs Testcontainers.PostgreSql, see CLAUDE.md. -->
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ChefLan.Logic\ChefLan.Logic.csproj" />
+    <ProjectReference Include="..\..\src\ChefLan.Domain\ChefLan.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ChefLan.Commons\ChefLan.Commons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

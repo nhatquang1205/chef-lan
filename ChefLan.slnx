@@ -7,4 +7,7 @@
     <Project Path="src/ChefLan.Infrastructure/ChefLan.Infrastructure.csproj" />
     <Project Path="src/ChefLan.Logic/ChefLan.Logic.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ChefLan.Logic.Tests/ChefLan.Logic.Tests.csproj" />
+  </Folder>
 </Solution>

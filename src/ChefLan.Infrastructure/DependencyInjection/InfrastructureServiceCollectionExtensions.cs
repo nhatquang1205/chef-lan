@@ -6,6 +6,7 @@ using ChefLan.Infrastructure.Repositories.Identity;
 using ChefLan.Infrastructure.Seed;
 using ChefLan.Infrastructure.Services.Email;
 using ChefLan.Infrastructure.Services.Images;
+using ChefLan.Infrastructure.Services.Payments;
 using ChefLan.Infrastructure.Services.Storage;
 using ChefLan.Infrastructure.Services.Video;
 using ChefLan.Logic.Abstractions;
@@ -63,6 +64,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ILessonRepository, LessonRepository>();
         services.AddScoped<ILessonVideoRepository, LessonVideoRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
         services.AddScoped<ICustomerDirectory, CustomerDirectory>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
     }
@@ -81,6 +84,17 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateOnStart();
         services.Configure<B2StorageOptions>(configuration.GetSection(B2StorageOptions.SectionName));
         services.Configure<BunnyStreamOptions>(configuration.GetSection(BunnyStreamOptions.SectionName));
+
+        // Checkout is off until the SePay merchant, its two secrets and the website address are configured.
+        services.AddOptions<PaymentOptions>()
+            .Bind(configuration.GetSection(PaymentOptions.SectionName))
+            .Validate(
+                o => !string.IsNullOrWhiteSpace(o.CodePrefix) && o.CodePrefix.All(char.IsAsciiLetterOrDigit) && o.CodePrefix.Length <= 6,
+                "Payment:CodePrefix must be 1-6 letters or digits.")
+            .Validate(o => o.OrderLifetimeMinutes is >= 5 and <= 10080, "Payment:OrderLifetimeMinutes must be between 5 and 10080.")
+            .ValidateOnStart();
+        services.PostConfigure<PaymentOptions>(o => o.SiteBaseUrl = configuration[$"{PublicSiteOptions.SectionName}:PublicBaseUrl"] ?? string.Empty);
+        services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOptions<PaymentOptions>>().Value);
 
         // Links in mails point at the customer website. Required wherever mail is really sent.
         services.AddOptions<PublicSiteOptions>()

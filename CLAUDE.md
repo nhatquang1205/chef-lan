@@ -46,7 +46,7 @@ projects and fails with a confusing assembly-load error.
 
 ### Tests
 
-There are no test projects yet. When added, they go under `tests/`, and a single test runs
+`tests/ChefLan.Logic.Tests` holds pure-logic tests (payment rules and flow over fakes). A single test runs
 with `dotnet test --filter "FullyQualifiedName~MyTest"`. Prefer `Testcontainers.PostgreSql`
 over EF InMemory — InMemory ignores query filters, partial indexes and `numeric` precision,
 which is precisely what this schema relies on.
@@ -319,6 +319,28 @@ and deploys. Design: `docs/deploy-api/`. Things that bite:
   role, before the new container starts. Keep migrations backwards-compatible for one release:
   rollback re-deploys the previous image against the newer schema.
 - CORS is empty in production (same origin); only Development allows `http://localhost:3000`.
+
+## Payments: orders paid on SePay's hosted page (Payment Gateway)
+
+Design and reasons: `docs/payments/`. A customer creates an **order** (price decided by the server); the response carries a **signed form** that the
+browser POSTs to SePay's hosted payment page. SePay's IPN (`POST /api/v1/payments/sepay/ipn`, secret in `X-Secret-Key`) names the order by
+`order_invoice_number` (= our order code) and pays it: `OrderFulfilment.MarkPaidAsync` is the only way an order becomes Paid (webhook, staff mark-paid,
+staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the same SaveChanges. Things that bite:
+
+- **The transaction is stored first** and `(provider, provider_transaction_id)` is unique: that is the idempotency, so a retried
+  notification is harmless. Never match before storing.
+- **Two different secrets:** `Payment:SePay:SecretKey` (merchant Secret Key, signs the form) and `Payment:SePay:IpnSecret` (IPN tab, checked on the
+  notification). Mixing them up makes SePay reject the form or us reject SePay. Neither is ever sent to the browser.
+- **`SePayIpnParser` and `PaymentInstructions.Sign` are the only places that know SePay's field names and signing rule** (pinned by a test with a signature
+  computed outside .NET). SePay's docs for the transaction object are incomplete: check a real notification ("Nhật ký IPN") before go-live.
+- The receiving bank account lives in SePay's dashboard. Nothing here knows an account number.
+- Anything that is not an exact match (under, over, late, duplicate, unknown) is stored and flagged for staff; only exact and over-payments pay an order
+  automatically. Late payments are never granted on their own. A `TRANSACTION_VOID` is stored as Ignored: staff must revoke by hand if a paid order is voided.
+- Expiry is lazy (`Order.EffectiveStatus`); there is no background job. Checkout is off until MerchantId, both secrets and `Web:PublicBaseUrl` are set,
+  and then `GET /api/v1/checkout/config` says so.
+- `make migrate` applies to the database in `appsettings.Development.json`, not to a `ConnectionStrings__ChefLanDb` env override:
+  use `dotnet dotnet-ef database update ... --connection "<cs>"` to migrate a scratch database.
+- Tests: `dotnet test tests/ChefLan.Logic.Tests`. They use in-memory fakes; the unique key and `xmin` races need a real Postgres.
 
 ## Videos: public id, playback endpoint
 

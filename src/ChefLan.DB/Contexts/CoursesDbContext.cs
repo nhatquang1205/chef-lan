@@ -40,6 +40,12 @@ public sealed class CoursesDbContext(DbContextOptions<CoursesDbContext> options)
 
     public DbSet<LessonEnrollment> LessonEnrollments => Set<LessonEnrollment>();
 
+    public DbSet<Order> Orders => Set<Order>();
+
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(ChefLanSchemas.Courses);
