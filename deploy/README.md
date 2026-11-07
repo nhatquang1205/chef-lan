@@ -144,7 +144,7 @@ upload answers 503. Everything else keeps working.
 
 ## Monitoring
 
-Dozzle (API logs, and a Discord message for every `Error` or `Fatal` API log entry) and Netdata (CPU, RAM, disk,
+Dozzle (API logs, and a Discord message for each API error) and Netdata (CPU, RAM, disk,
 per-container usage, nginx responses by status class). Both listen on `127.0.0.1` only. Design: `docs/monitoring/`.
 It is a separate compose project (`cheflan-monitoring`, in `~/chef-lan-monitoring`), because `deploy-api.sh` removes
 anything else in the `cheflan` project. The API needs the JSON log setting in `docker-compose.prod.yml`, so deploy the
@@ -186,8 +186,7 @@ the tag in `monitoring/docker-compose.yml`.
 ### Good to know
 
 - Dozzle's history is Docker's own log (about 30 MB) and a deploy replaces the container, so older lines are gone. Alerts are not affected.
-- One failing request can log several `Error` entries (EF Core, the request logger and the exception handler), each of which
-  sends its own message. Dozzle has no cooldown for log alerts, and Discord rate-limits a webhook to a few messages per
-  second, so a burst loses some of them.
+- EF Core and the request logger are left out of the alert, because they repeat what the exception handler reports: one failing
+  request is one message. Dozzle has no cooldown for log alerts, and Discord rate-limits a webhook, so a burst of errors loses some.
 - The nginx access log is shared by every site on this server, so the status counts are not chef-lan's alone.
 - Netdata's Postgres collector is off (`netdata/go.d.conf`), so it does not try to log in to the shared Postgres it can find through the Docker socket.

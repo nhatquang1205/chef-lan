@@ -21,4 +21,5 @@ subscriptions:
     enabled: true
     dispatcherId: 1
     containerExpression: 'name == "cheflan-api"'
-    logExpression: 'message["@l"] == "Error" || message["@l"] == "Fatal"'
+    # EF and the request logger repeat an error GlobalExceptionHandler reports anyway: one failing request is one message.
+    logExpression: '(message["@l"] == "Error" || message["@l"] == "Fatal") && !(string(message["SourceContext"]) startsWith "Microsoft.EntityFrameworkCore") && message["SourceContext"] != "Serilog.AspNetCore.RequestLoggingMiddleware"'

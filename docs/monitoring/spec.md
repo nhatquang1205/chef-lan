@@ -8,7 +8,7 @@ nginx traffic. This stays small: two containers on the VPS, no change to applica
 | | |
 |---|---|
 | Logs | **Dozzle**, watching `cheflan-api` only |
-| Error alerts | Dozzle log alert to a **Discord** channel webhook, on every `Error` or `Fatal` (Serilog's name for Critical) API log entry |
+| Error alerts | Dozzle log alert to a **Discord** channel webhook, on `Error` or `Fatal` (Serilog's name for Critical) API log entries, except EF Core and the request logger, which repeat what the exception handler reports |
 | Dashboard | **Netdata**: server CPU, RAM, disk, per-container usage, and nginx responses by status class (2xx, 3xx, 4xx, 5xx) parsed from the access log |
 | Access | Both listen on `127.0.0.1` of the VPS only, reached through an SSH tunnel. No domain, no nginx change |
 | Log format | The API logs through Serilog, so `Logging__Console__FormatterName` does nothing. Compact JSON is set by `Serilog__WriteTo__0__Args__formatter=Serilog.Formatting.Compact.RenderedCompactJsonFormatter, Serilog.Formatting.Compact` in the prod compose file: each entry and its stack trace is one line that Dozzle matches on `message["@l"]` |

@@ -70,3 +70,6 @@ Results:
   (name resolution failed in the Desktop VM's cgroup layout, expected to work on a normal Linux host); `group_add: "4"` against a real `root:adm 640`
   access log; the real Discord API (webhook response, rate limit, content limit); `rslave` on `/`; the nginx log format on the VPS (`log_type: auto`
   needs at least one line in the file when Netdata starts, otherwise the job fails its check until a restart).
+
+After review: the alert leaves out `Microsoft.EntityFrameworkCore*` and `Serilog.AspNetCore.RequestLoggingMiddleware`. Checked against Dozzle v11.4.1 and a local
+receiver: EF and request-logger errors sent nothing; the exception handler, an email failure, an entry with no `SourceContext` and a Fatal sent one each.
