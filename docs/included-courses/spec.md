@@ -54,5 +54,8 @@ Index on `included_course_id` (reverse lookups: "who includes C").
 | B3 | chef-lan | [Discount quote + recorded on grants](plans/03-discounts-and-grants.md) | done |
 | W  | chef-lan-web | `docs/plans/02-included-courses.md` | todo |
 | A  | chef-lan-admin | `docs/plans/15-included-courses.md`, `16-grant-discounts.md` | todo |
+| B4 | chef-lan | [Mark a course as a shared module](plans/04-shared-module-flag.md) | todo |
+| W2 | chef-lan-web | `docs/plans/05-shared-modules.md` | todo |
+| A2 | chef-lan-admin | `docs/plans/19-shared-modules.md` | todo |
 
 Order: B1 → B2 → B3; web after B2 (+B3 for the price line); admin 15 after B1, 16 after B3.
