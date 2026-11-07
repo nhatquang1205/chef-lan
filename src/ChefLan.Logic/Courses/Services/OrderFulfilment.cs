@@ -14,7 +14,7 @@ namespace ChefLan.Logic.Courses.Services;
 /// staff "link transaction" all come through here. Paying an order that is already Paid does nothing.
 ///
 /// Atomicity: the order and the transaction are tracked on the same DbContext as the grant, so the grant's own
-/// SaveChanges commits all three together. One item per order, so there is exactly one grant.
+/// SaveChanges commits all three together. Each item is granted by its own SaveChanges, so an order with several items must be wrapped in a transaction by the caller.
 /// </summary>
 internal sealed class OrderFulfilment(IEnrollmentService enrollments, IUnitOfWork unitOfWork, IClock clock)
 {
@@ -46,6 +46,8 @@ internal sealed class OrderFulfilment(IEnrollmentService enrollments, IUnitOfWor
         var reference = transaction?.ProviderTransactionId ?? order.Code;
         var note = $"Order {order.Code}";
         var alreadyHadAccess = false;
+        var single = order.Items.Count == 1;
+        var source = order.PaymentMethod == OrderPaymentMethod.StaffCreated ? EnrollmentSource.AdminGrant : EnrollmentSource.OnlineCheckout;
 
         foreach (var item in order.Items)
         {
@@ -55,10 +57,10 @@ internal sealed class OrderFulfilment(IEnrollmentService enrollments, IUnitOfWor
                         item.CourseId!.Value,
                         CustomerId: order.CustomerId,
                         IsPaid: true,
-                        AmountPaidVnd: received,
+                        AmountPaidVnd: single ? received : item.UnitPriceVnd,
                         PaymentNote: note,
                         PaymentReference: reference,
-                        Source: EnrollmentSource.OnlineCheckout,
+                        Source: source,
                         ListPriceVnd: item.ListPriceVnd,
                         DiscountVnd: item.DiscountVnd,
                         DiscountReason: item.DiscountReason),
@@ -69,10 +71,10 @@ internal sealed class OrderFulfilment(IEnrollmentService enrollments, IUnitOfWor
                         item.LessonId!.Value,
                         CustomerId: order.CustomerId,
                         IsPaid: true,
-                        AmountPaidVnd: received,
+                        AmountPaidVnd: single ? received : item.UnitPriceVnd,
                         PaymentNote: note,
                         PaymentReference: reference,
-                        Source: EnrollmentSource.OnlineCheckout),
+                        Source: source),
                     staffId,
                     cancellationToken)).ErrorOrNull();
 

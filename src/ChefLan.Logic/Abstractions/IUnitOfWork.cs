@@ -1,3 +1,5 @@
+using ChefLan.Commons.Results;
+
 namespace ChefLan.Logic.Abstractions;
 
 /// <summary>
@@ -7,4 +9,10 @@ namespace ChefLan.Logic.Abstractions;
 public interface IUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs <paramref name="work"/> (which may save several times) in one transaction: committed on success,
+    /// rolled back on a failed result or an exception.
+    /// </summary>
+    Task<Result<T>> InTransactionAsync<T>(Func<Task<Result<T>>> work, CancellationToken cancellationToken = default);
 }

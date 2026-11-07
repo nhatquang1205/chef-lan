@@ -127,6 +127,44 @@ public class OrderServiceTests
     }
 
     [Fact]
+    public async Task A_multi_item_order_records_each_items_own_amount_on_its_grant()
+    {
+        var world = new FakeWorld();
+        var service = new OrderHarness(world).Service;
+        var order = world.AddPendingOrder(amount: 1_300_000);
+        order.Items = [Item(10, 800_000, 742_857), Item(11, 750_000, 557_143)];
+
+        var result = await service.MarkPaidAsync(order.Id, new MarkOrderPaidRequest("Staff order"), staffId: 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([742_857m, 557_143m], world.CourseGrants.Select(g => g.AmountPaidVnd!.Value));
+        Assert.Equal([57_143m, 192_857m], world.CourseGrants.Select(g => g.DiscountVnd!.Value));
+    }
+
+    [Fact]
+    public async Task A_single_item_order_still_records_the_amount_received()
+    {
+        var world = new FakeWorld();
+        var service = new OrderHarness(world).Service;
+        var order = world.AddPendingOrder(amount: 900_000);
+
+        await service.MarkPaidAsync(order.Id, new MarkOrderPaidRequest("Paid"), staffId: 1);
+
+        Assert.Equal(900_000m, world.CourseGrants.Single().AmountPaidVnd);
+    }
+
+    private static OrderItem Item(long courseId, decimal list, decimal unit) => new()
+    {
+        Kind = OrderItemKind.Course,
+        CourseId = courseId,
+        Title = $"Course {courseId}",
+        CourseSlug = $"course-{courseId}",
+        ListPriceVnd = list,
+        DiscountVnd = list - unit,
+        UnitPriceVnd = unit,
+    };
+
+    [Fact]
     public async Task A_second_approval_is_already_paid()
     {
         var world = new FakeWorld();
@@ -174,6 +212,7 @@ internal sealed class OrderHarness
             Stub.Of<ILessonRepository>(new()),
             enrollments,
             enrollmentService,
+            Stub.Of<ICourseIncludeRepository>(new()),
             customers,
             world.Settings,
             new OrderFulfilment(enrollmentService, unitOfWork, clock),

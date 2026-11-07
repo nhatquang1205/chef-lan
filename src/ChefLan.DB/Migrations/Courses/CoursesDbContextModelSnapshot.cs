@@ -1023,6 +1023,17 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("bigint")
                         .HasColumnName("customer_id");
 
+                    b.Property<string>("DiscountReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("discount_reason");
+
+                    b.Property<decimal?>("DiscountVnd")
+                        .HasPrecision(12)
+                        .HasColumnType("numeric(12,0)")
+                        .HasColumnName("discount_vnd")
+                        .HasComment("Staff's discount on the whole order (already split over the items); null when there is none");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("expires_at");
@@ -1051,7 +1062,7 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("integer")
                         .HasDefaultValue(1)
                         .HasColumnName("payment_method")
-                        .HasComment("1=BankTransfer, 2=ContactChef");
+                        .HasComment("1=BankTransfer, 2=ContactChef, 3=StaffCreated");
 
                     b.Property<long?>("PaymentTransactionId")
                         .HasColumnType("bigint")
@@ -1102,7 +1113,7 @@ namespace ChefLan.DB.Migrations.Courses
 
                             t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
 
-                            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2)");
+                            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2, 3)");
 
                             t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
                         });

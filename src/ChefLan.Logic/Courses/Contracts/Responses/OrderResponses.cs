@@ -16,7 +16,21 @@ public sealed record OrderItemResponse(
     string CourseSlug,
     decimal ListPriceVnd,
     decimal DiscountVnd,
-    decimal UnitPriceVnd);
+    decimal UnitPriceVnd,
+    string? DiscountReason = null);
+
+public sealed record StaffQuoteItemResponse(
+    long CourseId,
+    string Title,
+    string Slug,
+    CourseStatus Status,
+    decimal ListPriceVnd,
+    IReadOnlyList<QuoteDiscountResponse> Discounts,
+    decimal SystemPriceVnd,
+    bool AlreadyOwned);
+
+/// <summary>The server's price for a staff order. Courses the customer already owns are flagged and left out of the subtotal.</summary>
+public sealed record StaffOrderQuoteResponse(IReadOnlyList<StaffQuoteItemResponse> Items, decimal SubtotalVnd);
 
 /// <summary>An order as its owner sees it. The status already accounts for expiry.</summary>
 public sealed record OrderResponse
@@ -53,6 +67,11 @@ public sealed record AdminOrderResponse
     public required OrderPaymentMethod PaymentMethod { get; init; }
 
     public required decimal AmountVnd { get; init; }
+
+    /// <summary>Staff's discount on the whole order (already inside the item prices), if any.</summary>
+    public decimal? DiscountVnd { get; init; }
+
+    public string? DiscountReason { get; init; }
 
     public required long CustomerId { get; init; }
 

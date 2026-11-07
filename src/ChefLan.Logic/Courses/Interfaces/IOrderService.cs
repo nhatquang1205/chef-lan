@@ -30,5 +30,17 @@ public interface IOrderService
     /// <summary>Staff confirm a payment by hand: grants the access and records who did it and why.</summary>
     Task<Result<AdminOrderResponse>> MarkPaidAsync(long orderId, MarkOrderPaidRequest request, long? staffId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// What the server would charge this customer for these courses, shared-module rule included. Nothing is saved. A course
+    /// the customer already owns comes back flagged, with no discounts, and is left out of the subtotal.
+    /// </summary>
+    Task<Result<StaffOrderQuoteResponse>> QuoteForStaffAsync(StaffOrderQuoteRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates an order for a customer, already Paid, and grants every course in one transaction. The server recomputes the
+    /// price; staff's per-course prices and order discount are applied on top. 409 if the customer already owns a course.
+    /// </summary>
+    Task<Result<AdminOrderResponse>> CreateByStaffAsync(CreateStaffOrderRequest request, long? staffId, CancellationToken cancellationToken = default);
+
     Task<Result<AdminOrderResponse>> CancelAsync(long orderId, CancellationToken cancellationToken = default);
 }

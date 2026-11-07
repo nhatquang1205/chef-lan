@@ -24,6 +24,11 @@ public class Order : AuditableEntity, IHasRowVersion
 
     public decimal AmountVnd { get; set; }
 
+    /// <summary>Staff's discount on the whole order, already shared out over the items. Null on every other order.</summary>
+    public decimal? DiscountVnd { get; set; }
+
+    public string? DiscountReason { get; set; }
+
     public DateTime ExpiresAt { get; set; }
 
     public DateTime? PaidAt { get; set; }

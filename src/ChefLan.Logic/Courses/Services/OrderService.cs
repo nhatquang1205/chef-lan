@@ -21,6 +21,7 @@ internal sealed class OrderService(
     ILessonRepository lessons,
     IEnrollmentRepository enrollmentRepository,
     IEnrollmentService enrollments,
+    ICourseIncludeRepository includes,
     ICustomerDirectory customers,
     IPaymentSettings settings,
     OrderFulfilment fulfilment,
@@ -234,6 +235,204 @@ internal sealed class OrderService(
 
         return order.ToAdminResponse(now);
     }
+
+    public async Task<Result<StaffOrderQuoteResponse>> QuoteForStaffAsync(
+        StaffOrderQuoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var plan = await PlanAsync(request.CustomerId, request.CourseIds, cancellationToken);
+
+        if (plan.IsFailure)
+        {
+            return plan.Error;
+        }
+
+        var items = request.CourseIds.Select(id =>
+        {
+            var course = plan.Value.Courses[id];
+            var quoted = plan.Value.Quoted.GetValueOrDefault(id);
+            var owned = quoted is null;
+
+            return new StaffQuoteItemResponse(
+                course.Id,
+                course.Title,
+                course.Slug,
+                course.Status,
+                course.PriceVnd,
+                owned ? [] : quoted!.Discounts.Select(d => new QuoteDiscountResponse(d.IncludedCourseId, d.Title, d.AmountVnd, d.Reason)).ToList(),
+                owned ? course.PriceVnd : quoted!.SystemPriceVnd,
+                owned);
+        }).ToList();
+
+        return new StaffOrderQuoteResponse(items, items.Where(i => !i.AlreadyOwned).Sum(i => i.SystemPriceVnd));
+    }
+
+    public async Task<Result<AdminOrderResponse>> CreateByStaffAsync(
+        CreateStaffOrderRequest request,
+        long? staffId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await customers.FindAsync(request.CustomerId, null, cancellationToken);
+
+        if (customer is null)
+        {
+            return EnrollmentErrors.CustomerNotFound;
+        }
+
+        if (!customer.IsActive)
+        {
+            return EnrollmentErrors.CustomerInactive;
+        }
+
+        var plan = await PlanAsync(request.CustomerId, request.Items.Select(i => i.CourseId).ToList(), cancellationToken);
+
+        if (plan.IsFailure)
+        {
+            return plan.Error;
+        }
+
+        foreach (var item in request.Items)
+        {
+            if (!plan.Value.Quoted.ContainsKey(item.CourseId))
+            {
+                return OrderErrors.AlreadyOwnedCourse(plan.Value.Courses[item.CourseId].Title);
+            }
+        }
+
+        var edits = new Dictionary<long, decimal>();
+
+        foreach (var item in request.Items.Where(i => i.UnitPriceVnd is not null))
+        {
+            var course = plan.Value.Courses[item.CourseId];
+            var price = item.UnitPriceVnd!.Value;
+
+            if (!Vnd.IsValid(price) || price > course.PriceVnd)
+            {
+                return OrderErrors.PriceOutOfRange(course.Title);
+            }
+
+            edits[item.CourseId] = price;
+        }
+
+        var discount = request.OrderDiscountVnd ?? 0;
+        var quoted = request.Items.Select(i => plan.Value.Quoted[i.CourseId]).ToList();
+        var afterEdits = quoted.Sum(q => edits.GetValueOrDefault(q.CourseId, q.SystemPriceVnd));
+
+        if (!Vnd.IsValid(discount) || discount > afterEdits)
+        {
+            return OrderErrors.DiscountTooLarge;
+        }
+
+        var priced = OrderQuote.Price(quoted, edits, discount, request.OrderDiscountReason);
+        var total = priced.Sum(p => p.UnitPriceVnd);
+
+        if (total <= 0)
+        {
+            return OrderErrors.TotalNotPositive;
+        }
+
+        var now = clock.UtcNow;
+
+        var order = new Order
+        {
+            Code = await NewCodeAsync(cancellationToken),
+            CustomerId = request.CustomerId,
+            PaymentMethod = OrderPaymentMethod.StaffCreated,
+            AmountVnd = total,
+            DiscountVnd = discount > 0 ? discount : null,
+            DiscountReason = discount > 0 ? request.OrderDiscountReason!.Trim() : null,
+            ExpiresAt = now,
+            Items = priced.Select(p =>
+            {
+                var course = plan.Value.Courses[p.CourseId];
+
+                return new OrderItem
+                {
+                    Kind = OrderItemKind.Course,
+                    CourseId = course.Id,
+                    Title = course.Title,
+                    CourseSlug = course.Slug,
+                    ListPriceVnd = p.ListPriceVnd,
+                    DiscountVnd = p.DiscountVnd,
+                    DiscountReason = p.DiscountReason,
+                    UnitPriceVnd = p.UnitPriceVnd,
+                };
+            }).ToList(),
+        };
+
+        var saved = await unitOfWork.InTransactionAsync<Order>(async () =>
+        {
+            orders.Add(order);
+
+            var paid = await fulfilment.MarkPaidAsync(order, OrderPaidVia.Manual, null, staffId, request.Note.Trim(), cancellationToken);
+
+            // Owning one of them by now means a grant raced this order: undo it all rather than keep a paid order with no grant.
+            if (paid.IsFailure)
+            {
+                return paid.Error;
+            }
+
+            return paid.Value ? EnrollmentErrors.AlreadyActive : order;
+        }, cancellationToken);
+
+        if (saved.IsFailure)
+        {
+            return saved.Error;
+        }
+
+        // Loaded again so the response carries the customer's name and contact.
+        return (await orders.GetByIdAsync(order.Id, cancellationToken) ?? order).ToAdminResponse(now);
+    }
+
+    private async Task<Result<StaffPlan>> PlanAsync(
+        long customerId,
+        IReadOnlyList<long> courseIds,
+        CancellationToken cancellationToken)
+    {
+        var customer = await customers.FindAsync(customerId, null, cancellationToken);
+
+        if (customer is null)
+        {
+            return EnrollmentErrors.CustomerNotFound;
+        }
+
+        var now = clock.UtcNow;
+        var loaded = new Dictionary<long, Course>();
+
+        foreach (var id in courseIds)
+        {
+            var course = await courses.GetByIdAsync(id, cancellationToken);
+
+            if (course is null)
+            {
+                return CourseErrors.NotFound(id);
+            }
+
+            loaded[id] = course;
+        }
+
+        var rows = new List<CourseInclude>();
+
+        foreach (var id in courseIds)
+        {
+            rows.AddRange(await includes.ListForCourseAsync(id, cancellationToken));
+        }
+
+        var moduleIds = rows.Select(r => r.IncludedCourseId).Distinct();
+        var owned = await enrollmentRepository.OwnedCourseIdsAsync(customerId, courseIds.Concat(moduleIds).Distinct().ToList(), now, cancellationToken);
+
+        var toPrice = courseIds.Where(id => !owned.Contains(id)).Select(id => loaded[id]).ToList();
+
+        var quoted = OrderQuote.Quote(
+            toPrice.Select(c => new QuoteCourse(c.Id, c.Title, c.PriceVnd)).ToList(),
+            rows.Select(r => new QuoteInclude(r.CourseId, r.IncludedCourseId, r.IncludedCourse?.Title ?? string.Empty, r.DiscountVnd, r.SortOrder)).ToList(),
+            owned);
+
+        return new StaffPlan(loaded, quoted.ToDictionary(q => q.CourseId));
+    }
+
+    /// <summary>The courses asked for, and the priced ones among them (a course the customer owns has no entry).</summary>
+    private sealed record StaffPlan(Dictionary<long, Course> Courses, Dictionary<long, QuotedCourse> Quoted);
 
     /// <summary>Records on a transaction what staff did with it.</summary>
     internal static void Reconcile(PaymentTransaction transaction, Order order, bool customerAlreadyHadAccess, string note)

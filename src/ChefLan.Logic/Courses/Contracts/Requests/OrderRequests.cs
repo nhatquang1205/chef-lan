@@ -24,6 +24,23 @@ public sealed record AdminOrderFilter
     public string? Q { get; init; }
 }
 
+/// <summary>Price a staff order before creating it. Nothing is saved.</summary>
+public sealed record StaffOrderQuoteRequest(long CustomerId, IReadOnlyList<long> CourseIds);
+
+/// <summary>One course on a staff order. <c>UnitPriceVnd</c> absent = the system price.</summary>
+public sealed record StaffOrderItemRequest(long CourseId, decimal? UnitPriceVnd = null);
+
+/// <summary>
+/// An order staff create for a customer: paid and granted at once. <c>Note</c> (why / how it was paid) is required.
+/// The order discount applies to the whole order and needs a reason.
+/// </summary>
+public sealed record CreateStaffOrderRequest(
+    long CustomerId,
+    IReadOnlyList<StaffOrderItemRequest> Items,
+    string Note,
+    decimal? OrderDiscountVnd = null,
+    string? OrderDiscountReason = null);
+
 /// <summary>Staff confirm a payment by hand. A reason is always required; a bank transaction is optional.</summary>
 public sealed record MarkOrderPaidRequest(string Reason, long? PaymentTransactionId = null);
 

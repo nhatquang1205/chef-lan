@@ -102,6 +102,8 @@ internal sealed class FakeClock(FakeWorld world) : IClock
 
 internal sealed class FakeUnitOfWork(FakeWorld world) : IUnitOfWork
 {
+    public Task<Result<T>> InTransactionAsync<T>(Func<Task<Result<T>>> work, CancellationToken cancellationToken = default) => work();
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         foreach (var order in world.Orders.Where(o => o.Id == 0))

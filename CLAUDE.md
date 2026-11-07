@@ -330,6 +330,12 @@ staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the 
 - **Contact orders:** `CreateOrderRequest.Method` is `BankTransfer` (default) or `ContactChef`. Only BankTransfer needs SePay (`CheckoutDisabled` 503 otherwise); a contact order has `payment: null`, lasts `Payment:ContactOrderLifetimeDays` (7) and is approved by staff through the same `mark-paid`, expired or not. Re-requesting the item with the other method switches the waiting order and keeps its code. `GET /api/v1/admins/orders` filters by `status` (EFFECTIVE status), `paymentMethod`, `customerId`, `q`.
 - **The transaction is stored first** and `(provider, provider_transaction_id)` is unique: that is the idempotency, so a retried
   notification is harmless. Never match before storing.
+- **Orders created by staff** (`POST /api/v1/admins/orders/quote`, `POST /api/v1/admins/orders`, `PaymentMethod = StaffCreated`): Paid when created
+  (`PaidVia = Manual`, the required `note` is `PaidReason`), courses only, each once, through `OrderFulfilment.MarkPaidAsync` inside
+  `IUnitOfWork.InTransactionAsync` (each grant saves on its own, so the transaction is what makes the order all-or-nothing). `OrderQuote`
+  (Logic, pure) holds the shared-module rule (a module included by several selected courses is charged once, to the course with the smallest
+  discount for it; free if it is selected too or already owned) and the split of staff's price edits and order discount. A multi-item order
+  records each enrollment's `AmountPaidVnd` from its item's `UnitPriceVnd`; staff-created grants use source `AdminGrant`.
 - **Two different secrets:** `Payment:SePay:SecretKey` (merchant Secret Key, signs the form) and `Payment:SePay:IpnSecret` (IPN tab, checked on the
   notification). Mixing them up makes SePay reject the form or us reject SePay. Neither is ever sent to the browser.
 - **`SePayIpnParser` and `PaymentInstructions.Sign` are the only places that know SePay's field names and signing rule** (pinned by a test with a signature

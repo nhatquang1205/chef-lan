@@ -31,7 +31,7 @@ public sealed class AdminOrdersController(IOrderService orders, IPaymentService 
 
     /// <summary>
     /// Orders, newest first. <c>status</c> is the status the response shows (a Pending order past its deadline is
-    /// Expired); <c>paymentMethod</c> is BankTransfer or ContactChef; <c>customerId</c> narrows to one customer;
+    /// Expired); <c>paymentMethod</c> is BankTransfer, ContactChef or StaffCreated; <c>customerId</c> narrows to one customer;
     /// <c>q</c> matches the order code or the customer's name, email or phone.
     /// </summary>
     [HttpGet("orders")]
@@ -41,6 +41,31 @@ public sealed class AdminOrdersController(IOrderService orders, IPaymentService 
         [FromQuery] PagedRequest paging,
         CancellationToken cancellationToken) =>
         Ok(await orders.ListAsync(filter, paging, cancellationToken));
+
+    /// <summary>
+    /// Prices courses for a customer without saving anything: each course's list price, the shared-module discounts, the
+    /// system price, and <c>alreadyOwned</c> for a course the customer has (left out of the subtotal). 404 for an unknown course.
+    /// </summary>
+    [HttpPost("orders/quote")]
+    [ProducesResponseType(typeof(StaffOrderQuoteResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<StaffOrderQuoteResponse>> Quote(StaffOrderQuoteRequest request, CancellationToken cancellationToken) =>
+        (await orders.QuoteForStaffAsync(request, cancellationToken)).ToActionResult(this);
+
+    /// <summary>
+    /// Creates an order for a customer, already paid, and grants every course at once. The server works out the price; send
+    /// <c>unitPriceVnd</c> per item to override it and <c>orderDiscountVnd</c> with a reason to discount the whole order.
+    /// <c>note</c> is required. 409 <c>order.already_owned</c> if the customer has a course; nothing is saved.
+    /// </summary>
+    [HttpPost("orders")]
+    [ProducesResponseType(typeof(AdminOrderResponse), StatusCodes.Status201Created)]
+    public async Task<ActionResult<AdminOrderResponse>> Create(CreateStaffOrderRequest request, CancellationToken cancellationToken)
+    {
+        var result = await orders.CreateByStaffAsync(request, StaffId(), cancellationToken);
+
+        return result.IsSuccess
+            ? StatusCode(StatusCodes.Status201Created, result.Value)
+            : result.ToActionResult(this);
+    }
 
     /// <summary>
     /// Confirms a payment by hand: grants the access. A reason is required and recorded with who did it. Pass a bank

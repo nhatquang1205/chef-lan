@@ -69,3 +69,39 @@ Build and tests pass. Against the local API: the quote matches the rule for each
 course in one go and the customer's `/me/courses` shows them; enrollments record list price, discount, reason and their own amount; the
 order shows in `GET /admins/orders` and in the customer's `/me/orders`; an owned course is a 409 and nothing is saved; a total of 0 is a
 400. Test data removed. Notes added here.
+
+## Notes (implementation)
+
+Done. 75 tests pass (62 before; 11 new in `OrderQuoteTests`, 2 in `OrderServiceTests`).
+
+Changes from the plan, and why:
+
+- **One transaction, not one SaveChanges.** `GrantCourseAsync` saves on its own, so the order and its grants cannot share a single
+  `SaveChanges`. Added `IUnitOfWork.InTransactionAsync` (Infrastructure runs it inside the context's execution strategy, which the
+  retrying Npgsql strategy requires); a failed grant, or a grant racing the order, rolls everything back. Not exercised live (no safe way
+  to force a failing grant locally); the success path and the pre-checks were.
+- **Source of the enrollments is `AdminGrant`** for `StaffCreated` orders (`OnlineCheckout` otherwise), since staff made them.
+- **Reason wording:** "Đã có {module}" and "{module} đã tính trong {course}" (no word "khóa", as in the plan's examples).
+- **Payer of a module is picked on the raw `discount_vnd` of each include**, before the cap at the course price.
+- **The remainder of the split** goes to the most expensive item but never past that item's price (leftover moves to the next one), so no
+  unit price can go negative with tiny amounts.
+- Order `expires_at` is set to the creation time (column is NOT NULL; a Paid order never expires).
+- `OrderItemResponse` gained `discountReason` (the reasons were not on any response). `POST /admins/orders` answers 201.
+- New errors: `order.total_not_positive`, `order.discount_too_large`, `order.price_out_of_range` (400); `order.already_owned` (409, names the course).
+
+Quote numbers on local data (modules A=41 price 550k, B=42; parents P46 800k includes A 100k and B 50k, P47 750k includes A 150k, P48 800k
+includes A 150k, P49 850k includes B 900k), customer owns nothing unless noted:
+
+| Case | Selection | Prices |
+|---|---|---|
+| Two parents, different discounts | 46, 47 (either order) | 46: 800000 (pays A), 47: 600000 |
+| Three parents | 46, 47, 48 | 800000, 600000, 650000 |
+| Module selected too | 46, 47, 41 | 700000, 600000, 550000 |
+| Customer owns the module | 41 owned; 41, 46, 47 | 41 flagged owned and left out; 700000, 600000 (subtotal 1300000) |
+| Tie | 47, 48 (both 150000) | 47: 750000 (cheaper pays), 48: 650000 |
+| Discount bigger than the price | 49, 42 | 49: 0 (discount capped at 850000), 42: 600000 |
+
+Create, on the same data: 46 + 47 with an order discount of 100000 gave 742857 + 557143 = 1300000 (split 57143 / 42857 + 150000 module
+discount; the 1 dong remainder went to 46). Enrollments recorded list price, discount, reason and their own amount; `/me/courses` and
+`/me/orders` showed both, `GET /admins/orders?paymentMethod=StaffCreated` listed it with the customer's name. Selecting an owned course
+again: 409 `order.already_owned`, nothing saved. A total of 0 (price edited to 0): 400 `order.total_not_positive`.

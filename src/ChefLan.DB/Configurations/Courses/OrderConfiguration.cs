@@ -15,7 +15,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.ToTable("orders", ChefLanSchemas.Courses, t =>
         {
             t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
-            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2)");
+            t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2, 3)");
             t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
             t.HasCheckConstraint("ck_orders_amount_positive", "amount_vnd > 0");
             t.HasCheckConstraint("ck_orders_paid_has_date", "status <> 2 OR paid_at IS NOT NULL");
@@ -39,11 +39,17 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.PaymentMethod)
             .HasConversion<int>()
             .HasDefaultValue(OrderPaymentMethod.BankTransfer)
-            .HasComment("1=BankTransfer, 2=ContactChef");
+            .HasComment("1=BankTransfer, 2=ContactChef, 3=StaffCreated");
 
         builder.Property(o => o.AmountVnd)
             .HasPrecision(12, 0)
             .HasComment("From the server-side quote when the order was created");
+
+        builder.Property(o => o.DiscountVnd)
+            .HasPrecision(12, 0)
+            .HasComment("Staff's discount on the whole order (already split over the items); null when there is none");
+
+        builder.Property(o => o.DiscountReason).HasMaxLength(300);
 
         builder.Property(o => o.PaidVia)
             .HasConversion<int?>()

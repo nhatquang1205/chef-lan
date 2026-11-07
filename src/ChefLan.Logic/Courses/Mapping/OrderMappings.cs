@@ -33,6 +33,8 @@ public static class OrderMappings
         Status = order.EffectiveStatus(utcNow),
         PaymentMethod = order.PaymentMethod,
         AmountVnd = order.AmountVnd,
+        DiscountVnd = order.DiscountVnd,
+        DiscountReason = order.DiscountReason,
         CustomerId = order.CustomerId,
         CustomerName = order.Customer?.FullName,
         CustomerEmail = order.Customer?.Email,
@@ -64,5 +66,5 @@ public static class OrderMappings
     };
 
     private static OrderItemResponse ToResponse(OrderItem item) =>
-        new(item.Kind, item.Title, item.CourseSlug, item.ListPriceVnd, item.DiscountVnd, item.UnitPriceVnd);
+        new(item.Kind, item.Title, item.CourseSlug, item.ListPriceVnd, item.DiscountVnd, item.UnitPriceVnd, item.DiscountReason);
 }

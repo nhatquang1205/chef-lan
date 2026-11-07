@@ -59,6 +59,9 @@ notification. A retry of the same notification returns the stored outcome; one s
 arrived before its order was visible). The customer already owning the item (a race with a staff grant) pays the order and
 flags the transaction Duplicate. Expiry is **lazy**: a Pending order past `expires_at` reads as Expired.
 
+Staff can also create an order themselves (`POST orders/quote`, `POST orders`, `PaymentMethod = StaffCreated`): Paid at once, one or more
+courses, shared modules charged once (`OrderQuote`, pure), staff may edit each price and discount the whole order; see plan 03.
+
 Staff tools (`/api/v1/admins`): `GET orders?status=&paymentMethod=&customerId=&q=&page=&pageSize=` (`status` is the effective status, so Expired includes Pending past its deadline; `q` matches code, customer name, email, phone), `GET payments?status=flagged|all|<status>`, `POST orders/{id}/mark-paid`
 (reason required, optional transaction), `POST payments/{id}/link` (attach a transaction to an order and pay it),
 `POST orders/{id}/cancel`. How an order was paid is on the order itself; there is no separate event table.
@@ -94,6 +97,6 @@ and refund the money by hand); invoices (hóa đơn điện tử).
 |---|---|---|---|
 | B1 | chef-lan | [Schema, orders, reconciliation, IPN, admin API](plans/01-orders-and-ipn.md) | done |
 | B2 | chef-lan | [Contact orders and the admin order list](plans/02-contact-orders-and-admin-list.md) | done |
-| B3 | chef-lan | [Orders created by staff](plans/03-staff-orders.md) | todo |
+| B3 | chef-lan | [Orders created by staff](plans/03-staff-orders.md) | done |
 | A2 | chef-lan-admin | `docs/plans/20-create-order.md` | todo |
 | W | chef-lan-web | `docs/plans/` checkout page + buy button | see that repo |

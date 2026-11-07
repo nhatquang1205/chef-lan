@@ -28,6 +28,18 @@ public static class OrderErrors
     public static readonly Error TransactionSettled =
         Error.Conflict("order.transaction_settled", "That bank transaction has already been applied to an order.");
 
+    public static readonly Error TotalNotPositive =
+        Error.Validation("order.total_not_positive", "The order total must be more than 0. Use a manual grant for a free gift.");
+
+    public static readonly Error DiscountTooLarge =
+        Error.Validation("order.discount_too_large", "The order discount cannot be more than the items add up to.");
+
+    public static Error AlreadyOwnedCourse(string title) =>
+        Error.Conflict("order.already_owned", $"The customer already has access to \"{title}\".");
+
+    public static Error PriceOutOfRange(string title) =>
+        Error.Validation("order.price_out_of_range", $"The price of \"{title}\" must be a whole amount between 0 and its list price.");
+
     public static Error NotFound(string code) => Error.NotFound("order.not_found", $"Order {code} was not found.");
 
     public static Error NotFound(long id) => Error.NotFound("order.not_found", $"Order {id} was not found.");
