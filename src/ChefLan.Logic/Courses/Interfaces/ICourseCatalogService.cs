@@ -12,6 +12,10 @@ public interface ICourseCatalogService
         CourseListQuery query,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResult<CourseListItemResponse>> ListSharedModulesAsync(
+        CourseListQuery query,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// <paramref name="customerId"/> is the signed-in customer if there is one. It does not
     /// change what is returned yet — enrollment gating arrives with the enrollment endpoints.

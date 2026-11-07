@@ -39,6 +39,8 @@ public sealed class CourseFormRequest
 
     public CourseLevel Level { get; set; } = CourseLevel.Unspecified;
 
+    public bool IsSharedModule { get; set; }
+
     public CourseRequest ToRequest(string? thumbnailUrl) => new(
         Title,
         Subtitle,
@@ -52,5 +54,6 @@ public sealed class CourseFormRequest
         AccessDurationDays,
         LegacyFacebookGroupUrl,
         CategoryIds,
-        Level);
+        Level,
+        IsSharedModule);
 }

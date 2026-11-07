@@ -20,6 +20,15 @@ public static class CourseQueryExtensions
     public static IQueryable<Course> OnlyPublished(this IQueryable<Course> query) =>
         query.Where(c => c.Status == CourseStatus.Published);
 
+    public static IQueryable<Course> OnlyRegularCourses(this IQueryable<Course> query) =>
+        query.Where(c => !c.IsSharedModule);
+
+    public static IQueryable<Course> OnlySharedModules(this IQueryable<Course> query) =>
+        query.Where(c => c.IsSharedModule);
+
+    public static IQueryable<Course> WithSharedModule(this IQueryable<Course> query, bool? isSharedModule) =>
+        isSharedModule is null ? query : query.Where(c => c.IsSharedModule == isSharedModule);
+
     public static IQueryable<Course> WithStatus(this IQueryable<Course> query, CourseStatus? status) =>
         status is null ? query : query.Where(c => c.Status == status);
 

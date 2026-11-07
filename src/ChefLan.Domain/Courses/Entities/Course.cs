@@ -42,6 +42,9 @@ public class Course : AuditableSoftDeletableEntity, IHasRowVersion
 
     public int EnrollmentCount { get; set; }
 
+    /// <summary>A building block other courses include. Hidden from the public course list; listed under shared modules.</summary>
+    public bool IsSharedModule { get; set; }
+
     /// <summary>Bridge to the Facebook group this course used to be sold through.</summary>
     public string? LegacyFacebookGroupUrl { get; set; }
 

@@ -11,6 +11,11 @@ public interface ICourseRepository
         CourseListQuery query,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Published shared modules only; <see cref="ListPublishedAsync"/> leaves them out.</summary>
+    Task<PagedResult<Course>> ListPublishedSharedModulesAsync(
+        CourseListQuery query,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Drafts included.</summary>
     Task<PagedResult<Course>> ListAsync(
         AdminCourseListQuery query,

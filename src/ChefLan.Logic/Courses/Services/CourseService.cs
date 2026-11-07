@@ -106,6 +106,18 @@ internal sealed class CourseService(
             return resolved.Error;
         }
 
+        if (request.IsSharedModule != course.IsSharedModule)
+        {
+            var conflict = request.IsSharedModule
+                ? await includes.CountIncludesAsync(id, cancellationToken) > 0 ? CourseErrors.SharedCannotInclude : null
+                : await includes.CountIncludedInAsync(id, cancellationToken) > 0 ? CourseErrors.SharedInUse : null;
+
+            if (conflict is not null)
+            {
+                return conflict;
+            }
+        }
+
         Apply(course, request);
 
         var wanted = resolved.Value.Select(c => c.Id).ToHashSet();
@@ -233,6 +245,7 @@ internal sealed class CourseService(
         course.ThumbnailUrl = SlugAllocator.Clean(request.ThumbnailUrl);
         course.PromoVideoUrl = SlugAllocator.Clean(request.PromoVideoUrl);
         course.Level = request.Level;
+        course.IsSharedModule = request.IsSharedModule;
         course.PriceVnd = request.PriceVnd;
         course.CompareAtPriceVnd = request.CompareAtPriceVnd;
         course.AccessDurationDays = request.AccessDurationDays;

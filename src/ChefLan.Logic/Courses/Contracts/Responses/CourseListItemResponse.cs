@@ -37,5 +37,7 @@ public sealed record CourseListItemResponse
     /// <summary>Null means lifetime access.</summary>
     public int? AccessDurationDays { get; init; }
 
+    public bool IsSharedModule { get; init; }
+
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 }

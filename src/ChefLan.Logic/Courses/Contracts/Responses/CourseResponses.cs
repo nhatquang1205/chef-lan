@@ -53,6 +53,8 @@ public sealed record CourseAdminDetailResponse
     /// <summary>How many gallery images the course has.</summary>
     public int ImageCount { get; init; }
 
+    public bool IsSharedModule { get; init; }
+
     public required IReadOnlyList<CategoryResponse> Categories { get; init; }
 }
 

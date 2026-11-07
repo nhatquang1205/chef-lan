@@ -15,6 +15,21 @@ own), and each bigger course **includes** it. A customer who already has the sha
 | Where the discount shows | Course page for a signed-in customer; the admin grant dialog (prefilled amount + reason); **recorded on the enrollment** |
 | Payment | Unchanged: no checkout. Staff grant by hand; the discount is a suggestion they can override |
 
+## Shared modules (flag)
+
+A course is a shared module only when staff mark it (`courses.is_shared_module`, default false; the migration flags every
+course that was already included). Rules, in `CourseService` and `CourseIncludeService`:
+
+- Only a flagged course can be included: otherwise 409 `course.include_not_shared`.
+- A flagged course cannot include others, and a course with includes cannot be flagged: 409 `course.shared_cannot_include`.
+- Unflagging a module that other courses include: 409 `course.shared_in_use`.
+- `GET /api/v1/courses` leaves modules out (so do search, category pages, hero and home sections); they are listed by
+  `GET /api/v1/shared-modules` (same parameters and shape). `GET /courses/{slug}`, lesson pages, `/access`, `/me/courses` and
+  orders are unchanged: a module stays reachable and can still be bought alone.
+- The admin list still shows everything and takes `isSharedModule=true|false`. `CourseRequest` and the multipart form carry
+  `isSharedModule`; a PUT replaces the whole course, so omitting it clears the flag. `isSharedModule` is on the list item and
+  the admin detail responses.
+
 ## Rules
 
 - **One level:** a course that includes others cannot itself be included, and an included course cannot include others.
@@ -54,7 +69,7 @@ Index on `included_course_id` (reverse lookups: "who includes C").
 | B3 | chef-lan | [Discount quote + recorded on grants](plans/03-discounts-and-grants.md) | done |
 | W  | chef-lan-web | `docs/plans/02-included-courses.md` | todo |
 | A  | chef-lan-admin | `docs/plans/15-included-courses.md`, `16-grant-discounts.md` | todo |
-| B4 | chef-lan | [Mark a course as a shared module](plans/04-shared-module-flag.md) | todo |
+| B4 | chef-lan | [Mark a course as a shared module](plans/04-shared-module-flag.md) | done |
 | W2 | chef-lan-web | `docs/plans/05-shared-modules.md` | todo |
 | A2 | chef-lan-admin | `docs/plans/19-shared-modules.md` | todo |
 

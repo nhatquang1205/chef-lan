@@ -372,6 +372,7 @@ enrollment does not unlock it (only a `lesson_enrollments` row does), it require
 `GET /api/v1/courses/{slug}/lessons/{lessonSlug}` is the public lesson page (outline, videos, prev/next); the
 **recipe is returned only to a customer with access** (`recipesLocked` tells the page there is one), so the answer is
 `Cache-Control: private, no-store`. Playback responses carry `lessonSlug` so old watch links can redirect there.
+**Shared modules:** `courses.is_shared_module` marks a course other courses include. Only flagged courses can be included (409 `course.include_not_shared`, `course.shared_cannot_include`, `course.shared_in_use`); `GET /courses` hides them and `GET /api/v1/shared-modules` lists them. Spec: `docs/included-courses/spec.md`.
 `GET /api/v1/me/courses` (customer only) is the library: published courses owned whole (`hasCourseAccess`, `courseExpiresAt`) or in part (`lessons`), active and unexpired only, newest grant first.
 
 ## Email

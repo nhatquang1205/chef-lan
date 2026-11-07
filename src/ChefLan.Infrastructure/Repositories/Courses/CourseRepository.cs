@@ -13,12 +13,17 @@ internal sealed class CourseRepository(CoursesDbContext context) : ICourseReposi
     public Task<PagedResult<Course>> ListPublishedAsync(
         CourseListQuery query,
         CancellationToken cancellationToken = default) =>
-        PageAsync(context.Courses.AsNoTracking().OnlyPublished(), query, cancellationToken);
+        PageAsync(context.Courses.AsNoTracking().OnlyPublished().OnlyRegularCourses(), query, cancellationToken);
+
+    public Task<PagedResult<Course>> ListPublishedSharedModulesAsync(
+        CourseListQuery query,
+        CancellationToken cancellationToken = default) =>
+        PageAsync(context.Courses.AsNoTracking().OnlyPublished().OnlySharedModules(), query, cancellationToken);
 
     public Task<PagedResult<Course>> ListAsync(
         AdminCourseListQuery query,
         CancellationToken cancellationToken = default) =>
-        PageAsync(context.Courses.AsNoTracking().WithStatus(query.Status), query, cancellationToken);
+        PageAsync(context.Courses.AsNoTracking().WithStatus(query.Status).WithSharedModule(query.IsSharedModule), query, cancellationToken);
 
     private static async Task<PagedResult<Course>> PageAsync(
         IQueryable<Course> source,

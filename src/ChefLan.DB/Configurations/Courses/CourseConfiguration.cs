@@ -71,6 +71,10 @@ public sealed class CourseConfiguration : IEntityTypeConfiguration<Course>
 
         builder.Property(c => c.EnrollmentCount).HasDefaultValue(0);
 
+        builder.Property(c => c.IsSharedModule)
+            .HasDefaultValue(false)
+            .HasComment("A building block that other courses include; hidden from the public course list");
+
         builder.Property(c => c.LegacyFacebookGroupUrl)
             .HasMaxLength(1000)
             .HasComment("Bridge to the Facebook group this course used to be sold through");

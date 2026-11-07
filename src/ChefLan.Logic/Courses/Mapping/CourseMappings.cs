@@ -27,6 +27,7 @@ public static class CourseMappings
         LessonCount = course.LessonCount,
         TotalDurationSeconds = course.TotalDurationSeconds,
         AccessDurationDays = course.AccessDurationDays,
+        IsSharedModule = course.IsSharedModule,
         Categories = course.Categories(),
     };
 
@@ -56,6 +57,7 @@ public static class CourseMappings
         IncludesCount = includesCount,
         IncludedInCount = includedInCount,
         ImageCount = imageCount,
+        IsSharedModule = course.IsSharedModule,
         Categories = course.Categories(),
     };
 

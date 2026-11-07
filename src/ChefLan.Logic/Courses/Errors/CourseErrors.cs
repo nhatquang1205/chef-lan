@@ -54,6 +54,21 @@ public static class CourseErrors
             "course.include_not_found",
             $"Course {courseId} does not include course {includedCourseId}.");
 
+    public static readonly Error IncludeNotShared =
+        Error.Conflict(
+            "course.include_not_shared",
+            "Only a course marked as a shared module can be included in another course.");
+
+    public static readonly Error SharedInUse =
+        Error.Conflict(
+            "course.shared_in_use",
+            "Other courses include this shared module. Remove it from them before unmarking it.");
+
+    public static readonly Error SharedCannotInclude =
+        Error.Conflict(
+            "course.shared_cannot_include",
+            "A shared module cannot include other courses, and a course that includes others cannot be a shared module.");
+
     public static Error TooManyImages(int max) =>
         Error.Validation("course.too_many_images", $"A course can have at most {max} images.");
 

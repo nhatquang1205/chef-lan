@@ -173,6 +173,13 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
+                    b.Property<bool>("IsSharedModule")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_shared_module")
+                        .HasComment("A building block that other courses include; hidden from the public course list");
+
                     b.Property<string>("LegacyFacebookGroupUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")

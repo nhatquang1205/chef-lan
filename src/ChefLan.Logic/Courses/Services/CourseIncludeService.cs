@@ -53,6 +53,16 @@ internal sealed class CourseIncludeService(
             return CourseErrors.NotFound(includedCourseId);
         }
 
+        if (parent.IsSharedModule)
+        {
+            return CourseErrors.SharedCannotInclude;
+        }
+
+        if (!child.IsSharedModule)
+        {
+            return CourseErrors.IncludeNotShared;
+        }
+
         if (await includes.CountIncludedInAsync(courseId, cancellationToken) > 0
             || await includes.CountIncludesAsync(includedCourseId, cancellationToken) > 0)
         {

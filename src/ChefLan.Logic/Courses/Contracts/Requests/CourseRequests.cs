@@ -20,10 +20,13 @@ public sealed record CourseRequest(
     int? AccessDurationDays,
     string? LegacyFacebookGroupUrl,
     IReadOnlyList<long>? CategoryIds,
-    CourseLevel Level = CourseLevel.Unspecified);
+    CourseLevel Level = CourseLevel.Unspecified,
+    bool IsSharedModule = false);
 
 /// <summary>The admin list: everything the public list supports, plus drafts and a status filter.</summary>
 public sealed record AdminCourseListQuery : CourseListQuery
 {
     public CourseStatus? Status { get; init; }
+
+    public bool? IsSharedModule { get; init; }
 }

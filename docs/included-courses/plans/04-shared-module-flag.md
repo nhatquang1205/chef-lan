@@ -36,3 +36,12 @@ Staff now mark them explicitly. The picker shows only those, and the public list
 fakes allow it. Against the local API: a flagged published course is gone from `GET /courses` (also with `q` and `categorySlug`), is in
 `GET /shared-modules`, and its `GET /courses/{slug}` is still 200. A customer owning it still sees it in `/me/courses`. Each 409 above
 fires, and a multipart PUT keeps the flag. The backfill sets the flag on a course that was already included. Test data removed.
+
+## Implementation notes
+
+- Done. Build with `-warnaserror` clean; `ChefLan.Logic.Tests` 61 passed (no new tests: the fakes cover payments only, there is no course fake).
+- No index added: the courses table is small and the existing `(status, published_at)` index serves the list.
+- Rule checks: `CourseIncludeService.UpsertAsync` checks parent-is-shared, then child-not-shared, before the nested check. `CourseService.UpdateAsync` checks only when the flag changes.
+- Create cannot conflict (a new course has no includes), so only update enforces `shared_cannot_include` and `shared_in_use`.
+- `/me/courses` was not exercised with a real customer (no password-bearing local customer; creating one would risk mail); its query does not use the new filters.
+- Verified locally: backfill flagged an already-included course; `/courses` (plain, `q`, `categorySlug`) hides a flagged published course, `/shared-modules` lists it (also with `categorySlug`), `/courses/{slug}` stays 200; all three 409s; multipart PUT and POST keep/set the flag.

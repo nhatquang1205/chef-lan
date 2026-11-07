@@ -34,6 +34,19 @@ internal sealed class CourseCatalogService(
             page.TotalCount);
     }
 
+    public async Task<PagedResult<CourseListItemResponse>> ListSharedModulesAsync(
+        CourseListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var page = await courses.ListPublishedSharedModulesAsync(query, cancellationToken);
+
+        return PagedResult<CourseListItemResponse>.Create(
+            page.Items.Select(c => c.ToListItemResponse()).ToList(),
+            page.Page,
+            page.PageSize,
+            page.TotalCount);
+    }
+
     public async Task<Result<CourseDetailResponse>> GetPublishedBySlugAsync(
         string slug,
         long? customerId,
