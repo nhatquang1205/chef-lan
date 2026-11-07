@@ -28,6 +28,19 @@ set +a
 previous="$(cat .last-good-tag 2>/dev/null || true)"
 export IMAGE_TAG
 
+# Each deploy pulls a new tag and nothing else removes the old ones. Keeps this image and the previous one, the
+# rollback target. Skipped on a re-run of the same tag, when the previous one is no longer known.
+remove_old_images() {
+  [ -n "$previous" ] && [ "$previous" != "$IMAGE_TAG" ] || return 0
+
+  local repo="${IMAGE:-ghcr.io/nhatquang1205/chef-lan-api}" tag
+  docker images "$repo" --format '{{.Tag}}' | while read -r tag; do
+    if [ "$tag" != "$IMAGE_TAG" ] && [ "$tag" != "$previous" ]; then
+      docker rmi "$repo:$tag" >/dev/null || true
+    fi
+  done
+}
+
 if [ -z "${SKIP_PULL:-}" ]; then
   echo "→ pulling image ($IMAGE_TAG)"
   "${COMPOSE[@]}" pull api
@@ -56,6 +69,7 @@ for _ in $(seq 1 30); do
   if [ "$code" = "200" ]; then
     echo "   /health → 200"
     echo "$IMAGE_TAG" > .last-good-tag
+    remove_old_images || true
     docker image prune -f >/dev/null
     exit 0
   fi

@@ -140,6 +140,7 @@ upload answers 503. Everything else keeps working.
 |---|---|
 | Logs | Dozzle (see Monitoring), or `docker compose -f ~/chef-lan/docker-compose.prod.yml logs -f api` |
 | Roll back | `cd ~/chef-lan && IMAGE_TAG=$(cat .last-good-tag) bash deploy-api.sh` (database changes are forward-only: keep migrations backwards-compatible for one release) |
+| Old images | every successful deploy removes API images except the new one and the previous one |
 | Backup | none yet - set up a nightly `docker exec postgres pg_dump -U cheflan cheflan` before real customers arrive |
 
 ## Monitoring
