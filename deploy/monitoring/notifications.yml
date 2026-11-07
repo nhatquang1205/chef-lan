@@ -1,0 +1,24 @@
+# Seeded into Dozzle's /data (see deploy/README.md). The URL is read from the DISCORD_WEBHOOK_URL
+# environment variable when an alert is sent, so no credential is stored here.
+#
+# The API logs one Serilog compact JSON object per line (@l level, @m message, @x exception, SourceContext).
+# The template is valid JSON, so Dozzle escapes quotes and newlines in the inserted text. Actions use backticks
+# for strings because Dozzle parses the raw text as a Go template before it reads it as JSON.
+# Discord rejects content over 2000 characters: the fields below are cut to 80 + 500 + 900 characters, about 1,600 with the markup.
+dispatchers:
+  - id: 1
+    name: Discord
+    type: webhook
+    url: ${DISCORD_WEBHOOK_URL}
+    template: |
+      {
+        "content": "**{{ index .Log.Message `@l` }}** in `{{ printf `%.80s` .Log.Message.SourceContext }}`\n{{ printf `%.500s` (index .Log.Message `@m`) }}{{ with (index .Log.Message `@x`) }}\n```\n{{ printf `%.900s` . }}\n```{{ end }}",
+        "allowed_mentions": { "parse": [] }
+      }
+subscriptions:
+  - id: 1
+    name: API errors
+    enabled: true
+    dispatcherId: 1
+    containerExpression: 'name == "cheflan-api"'
+    logExpression: 'message["@l"] == "Error" || message["@l"] == "Fatal"'

@@ -37,3 +37,36 @@ Read `../spec.md` first.
 ## Not in scope
 
 Container-down alerts, CPU or RAM alerts, the web app's logs, longer log history, a public domain.
+
+## Implementation notes
+
+Tested locally on Docker Desktop (Linux VM), pinned `amir20/dozzle:v11.4.1` and `netdata/netdata:v2.12.3`. The VPS steps are in
+`deploy/README.md`, "Monitoring". Nothing was deployed.
+
+Changed from the plan:
+
+- **Log format.** `Logging__Console__FormatterName=json` does nothing: `Program.cs` uses Serilog (`UseSerilog` + `ReadFrom.Configuration`) and
+  replaces the built-in console logger. The compose environment sets
+  `Serilog__WriteTo__0__Args__formatter=Serilog.Formatting.Compact.RenderedCompactJsonFormatter, Serilog.Formatting.Compact` instead (the
+  assembly ships with Serilog.AspNetCore; no code change). `Serilog.Formatting.Json.JsonFormatter` was tried first: its `renderMessage`
+  option cannot be set from configuration, so entries carried only the message template. The compact fields are `@l` level, `@m` message,
+  `@x` exception, `SourceContext`.
+- **Levels.** Serilog calls Critical `Fatal`, so the alert is `message["@l"] == "Error" || message["@l"] == "Fatal"`.
+- **Template syntax.** Dozzle parses the template as a Go template before it reads it as JSON, so a `\"` inside an action is a parse error and the
+  dispatcher is silently skipped ("Skipping invalid dispatcher" in Dozzle's log). Actions use backticks. Because the text is then valid JSON,
+  Dozzle escapes quotes and newlines in the inserted values itself.
+- Added `netdata/netdata.conf` (only the three `dbengine tier N retention size` lines: 300 + 100 + 100 MiB = 500 MiB, default is 1 GiB per tier) and
+  `DOZZLE_NO_ANALYTICS=true`. Kept the official `/:/host/root:ro,rslave` mount, which Netdata uses for host disk space; only `/var/log` is narrowed.
+- A webhook to a loopback or link-local address is refused by Dozzle (SSRF guard), so the local receiver ran as a container on the compose network.
+
+Results:
+
+- One failing request logs four `Error` entries (EF connection, EF query, `RequestLoggingMiddleware`, `GlobalExceptionHandler`) and so sends four
+  messages. An unhandled exception is one JSON line (about 6.5 KB of `@x`).
+- Burst of 50 `Error` entries: 50 POSTs, none dropped or merged. Discord rate-limits webhooks, so against the real service some would get a 429
+  and Dozzle does not retry.
+- Content is about 1.4 KB for a 6,000 character exception with quotes, backslashes, tabs and newlines; always valid JSON, and under 2,000 by construction.
+- Not proven here: host CPU/RAM/disk are those of the Docker Desktop VM; per-container charts exist but are keyed by container id, not name
+  (name resolution failed in the Desktop VM's cgroup layout, expected to work on a normal Linux host); `group_add: "4"` against a real `root:adm 640`
+  access log; the real Discord API (webhook response, rate limit, content limit); `rslave` on `/`; the nginx log format on the VPS (`log_type: auto`
+  needs at least one line in the file when Netdata starts, otherwise the job fails its check until a restart).

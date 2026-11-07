@@ -1,0 +1,71 @@
+# Monitoring: Dozzle (API logs + error alerts to Discord) and Netdata (server dashboard).
+# Lives on the VPS in ~/chef-lan-monitoring next to a `.env` (never committed).
+# A separate project from the API's `cheflan`: deploy-api.sh runs `up --remove-orphans`
+# there and would delete these containers.
+name: cheflan-monitoring
+
+services:
+  dozzle:
+    image: amir20/dozzle:v11.4.1
+    container_name: cheflan-dozzle
+    restart: unless-stopped
+    environment:
+      DOZZLE_FILTER: name=cheflan-api
+      DOZZLE_NO_ANALYTICS: "true"
+      # Read by Dozzle when it sends an alert; notifications.yml only holds ${DISCORD_WEBHOOK_URL}.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:?DISCORD_WEBHOOK_URL is required}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dozzle-data:/data
+    # Loopback only: reach it through an SSH tunnel.
+    ports:
+      - "127.0.0.1:8081:8080"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  netdata:
+    image: netdata/netdata:v2.12.3
+    container_name: cheflan-netdata
+    restart: unless-stopped
+    pid: host
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    # The nginx access log is root:adm 640; gid 4 is `adm` on Debian/Ubuntu.
+    group_add:
+      - "4"
+    environment:
+      DO_NOT_TRACK: "1"
+    volumes:
+      - netdata-config:/etc/netdata
+      - netdata-lib:/var/lib/netdata
+      - netdata-cache:/var/cache/netdata
+      - ./netdata/netdata.conf:/etc/netdata/netdata.conf:ro
+      - ./netdata/go.d/web_log.conf:/etc/netdata/go.d/web_log.conf:ro
+      - /:/host/root:ro,rslave
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/log/nginx:/host/var/log/nginx:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Bridge network, not `network_mode: host`: a missed bind setting must not make it public.
+    ports:
+      - "127.0.0.1:19999:19999"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  netdata-config:
+  netdata-lib:
+  netdata-cache:

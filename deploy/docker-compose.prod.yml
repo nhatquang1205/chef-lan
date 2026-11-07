@@ -10,6 +10,9 @@ services:
     env_file: .env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      # The API logs through Serilog, which reads this section. One compact JSON object per entry (@m message,
+      # @l level, @x stack trace): Dozzle's error alert matches on its fields.
+      Serilog__WriteTo__0__Args__formatter: "Serilog.Formatting.Compact.RenderedCompactJsonFormatter, Serilog.Formatting.Compact"
       # Interpolated from .env, so the password is written once.
       ConnectionStrings__ChefLanDb: "Host=${PG_HOST:-postgres};Port=5432;Database=${DB_NAME:-cheflan};Username=${DB_USER:-cheflan};Password=${DB_PASSWORD:?DB_PASSWORD is required}"
     # Loopback only: nginx and chef-lan-web's server-side calls reach it here; it is never public.

@@ -138,6 +138,56 @@ upload answers 503. Everything else keeps working.
 
 | | |
 |---|---|
-| Logs | `docker compose -f ~/chef-lan/docker-compose.prod.yml logs -f api` |
+| Logs | Dozzle (see Monitoring), or `docker compose -f ~/chef-lan/docker-compose.prod.yml logs -f api` |
 | Roll back | `cd ~/chef-lan && IMAGE_TAG=$(cat .last-good-tag) bash deploy-api.sh` (database changes are forward-only: keep migrations backwards-compatible for one release) |
 | Backup | none yet - set up a nightly `docker exec postgres pg_dump -U cheflan cheflan` before real customers arrive |
+
+## Monitoring
+
+Dozzle (API logs, and a Discord message for every `Error` or `Fatal` API log entry) and Netdata (CPU, RAM, disk,
+per-container usage, nginx responses by status class). Both listen on `127.0.0.1` only. Design: `docs/monitoring/`.
+It is a separate compose project (`cheflan-monitoring`, in `~/chef-lan-monitoring`), because `deploy-api.sh` removes
+anything else in the `cheflan` project. The API needs the JSON log setting in `docker-compose.prod.yml`, so deploy the
+API once first.
+
+### Setup (no sudo: the deploy user is in group `docker`)
+
+1. Discord: in the channel, Edit Channel -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL. It is a
+   credential: it goes only in the `.env` below, never in git.
+2. Check what Netdata needs from the host: `ls -l /var/log/nginx/access.log` should show group `adm`, and
+   `getent group adm` should say gid `4`. If the gid differs, change `group_add` in `monitoring/docker-compose.yml`.
+3. From your machine, copy the folder, then on the VPS fill in the secret and start it:
+
+```bash
+ssh nina 'mkdir -p ~/chef-lan-monitoring/dozzle-data'
+scp -r deploy/monitoring/* deploy/monitoring/.env.example nina:chef-lan-monitoring/
+ssh nina
+cd ~/chef-lan-monitoring
+cp .env.example .env && chmod 600 .env && nano .env      # paste the webhook URL
+cp notifications.yml dozzle-data/notifications.yml
+docker compose up -d
+```
+
+### Use
+
+```bash
+ssh -N -L 8081:127.0.0.1:8081 -L 19999:127.0.0.1:19999 nina
+```
+
+Dozzle is then at http://localhost:8081, Netdata at http://localhost:19999. Check the alert in Dozzle ->
+Notifications -> Test.
+
+### Updating
+
+Edit the files in the repo, copy them again (`scp` as above; `cp notifications.yml dozzle-data/` and
+`docker compose restart dozzle` if the alert changed), then `docker compose up -d`. To move to a new image version, change
+the tag in `monitoring/docker-compose.yml`.
+
+### Good to know
+
+- Dozzle's history is Docker's own log (about 30 MB) and a deploy replaces the container, so older lines are gone. Alerts are not affected.
+- One failing request can log several `Error` entries (EF Core, the request logger and the exception handler), each of which
+  sends its own message. Dozzle has no cooldown for log alerts, and Discord rate-limits a webhook to a few messages per
+  second, so a burst loses some of them.
+- The nginx access log is shared by every site on this server, so the status counts are not chef-lan's alone.
+- Netdata tries to monitor databases it finds through the Docker socket (it will log failed Postgres logins for the shared Postgres container). Harmless.
