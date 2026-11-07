@@ -190,4 +190,4 @@ the tag in `monitoring/docker-compose.yml`.
   sends its own message. Dozzle has no cooldown for log alerts, and Discord rate-limits a webhook to a few messages per
   second, so a burst loses some of them.
 - The nginx access log is shared by every site on this server, so the status counts are not chef-lan's alone.
-- Netdata tries to monitor databases it finds through the Docker socket (it will log failed Postgres logins for the shared Postgres container). Harmless.
+- Netdata's Postgres collector is off (`netdata/go.d.conf`), so it does not try to log in to the shared Postgres it can find through the Docker socket.

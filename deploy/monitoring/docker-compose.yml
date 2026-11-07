@@ -46,6 +46,7 @@ services:
       - netdata-lib:/var/lib/netdata
       - netdata-cache:/var/cache/netdata
       - ./netdata/netdata.conf:/etc/netdata/netdata.conf:ro
+      - ./netdata/go.d.conf:/etc/netdata/go.d.conf:ro
       - ./netdata/go.d/web_log.conf:/etc/netdata/go.d/web_log.conf:ro
       - /:/host/root:ro,rslave
       - /etc/passwd:/host/etc/passwd:ro
