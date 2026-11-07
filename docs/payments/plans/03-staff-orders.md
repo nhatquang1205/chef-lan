@@ -13,7 +13,7 @@ create the order in the admin, for one or more courses, and the access is grante
 | Method | New `OrderPaymentMethod.StaffCreated = 3` ("Admin tạo"). The check constraint widens to `(1, 2, 3)` |
 | Price | The server quotes, staff may change each course's price and add a discount on the whole order with a reason. The server recomputes on create and never trusts a client total |
 | Shared modules | Charged once (see the rule below) |
-| Already owned | A course the customer already has (any active path) cannot be added: 409 `order.already_owned` naming it |
+| Already owned | A course the customer already has (any active path): the quote flags it, the create refuses it with 409 `order.already_owned` naming it |
 | Total | Must be > 0 (existing `ck_orders_amount_positive`). A free gift keeps using the manual grant |
 
 ### The shared module rule
@@ -42,8 +42,11 @@ trong Bánh panettone"), joined into the item's `DiscountReason`.
 ## API
 
 - `POST /api/v1/admins/orders/quote` `{ customerId, courseIds[] }` → `{ items: [{ courseId, title, slug, listPriceVnd, discounts:
-  [{ includedCourseId, title, amountVnd, reason }], systemPriceVnd }], subtotalVnd }`. Nothing is saved. 409 for an owned course,
-  404 for an unknown or deleted one. Drafts are allowed (staff sell before publishing); the response says `status`.
+  [{ includedCourseId, title, amountVnd, reason }], systemPriceVnd, alreadyOwned }], subtotalVnd }`. Nothing is saved. An owned course
+  is not an error here: it comes back with `alreadyOwned: true`, no discounts and is left out of `subtotalVnd`, so the admin can mark
+  that row. 404 for an unknown or deleted course. Drafts are allowed (staff sell before publishing); the response says `status`.
+- The admin's course picker uses the normal admin course list, with no customer filter. Ownership is decided here, on the server: the
+  quote reports it and the create refuses it.
 - `POST /api/v1/admins/orders` `{ customerId, items: [{ courseId, unitPriceVnd? }], orderDiscountVnd?, orderDiscountReason?, note }`
   → `AdminOrderResponse` (gains `discountVnd`, `discountReason`). `unitPriceVnd` absent = the system price. Validation: whole dong, ≥ 0,
   at most the list price; order discount ≤ the sum after edits and requires a reason; `note` required, max 300; at least one item, no
@@ -62,7 +65,7 @@ trong Bánh panettone"), joined into the item's `DiscountReason`.
 
 ## Done when
 
-Build and tests pass. Against the local API: the quote matches the rule for each case above with real includes; create grants every
+Build and tests pass. Against the local API: the quote matches the rule for each case above with real includes and flags an owned course; create grants every
 course in one go and the customer's `/me/courses` shows them; enrollments record list price, discount, reason and their own amount; the
 order shows in `GET /admins/orders` and in the customer's `/me/orders`; an owned course is a 409 and nothing is saved; a total of 0 is a
 400. Test data removed. Notes added here.
