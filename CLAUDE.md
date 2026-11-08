@@ -417,7 +417,7 @@ failed send (`502 email.send_failed`) leaves the previous link working. Customer
 Spec: `docs/monitoring/`; setup: `deploy/README.md`, "Monitoring". `deploy/monitoring/` is its own compose project
 (`cheflan-monitoring`, in `~/chef-lan-monitoring` on the VPS) so `deploy-api.sh`'s `--remove-orphans` never deletes it. Dozzle
 watches `cheflan-api` and posts `Error`/`Fatal` entries (except EF Core and the request logger, which repeat the exception handler) to a Discord webhook; Netdata shows the host and nginx status classes.
-Both bind `127.0.0.1` only (SSH tunnel). The webhook URL is a credential in the VPS `.env` only: this repo is public.
+Both bind `127.0.0.1` only; `https://monitor.bonbocon.com` (nginx basic auth, Netdata `/system/`, Dozzle `/logs/` with `DOZZLE_BASE=/logs`) or an SSH tunnel. The webhook URL is a credential in the VPS `.env` only: this repo is public.
 The API logs through Serilog, so JSON output is set by `Serilog__WriteTo__0__Args__formatter` in `docker-compose.prod.yml`
 (`Logging__Console__*` has no effect); the alert reads Serilog's compact fields (`@l`, `@m`, `@x`).
 

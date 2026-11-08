@@ -193,7 +193,8 @@ docker compose up -d
 ssh -N -L 8081:127.0.0.1:8081 -L 19999:127.0.0.1:19999 nina
 ```
 
-Dozzle is then at http://localhost:8081, Netdata at http://localhost:19999. Check the alert in Dozzle ->
+Dozzle is then at http://localhost:8081/logs/, Netdata at http://localhost:19999. Without a tunnel: https://monitor.bonbocon.com
+(`/system/` Netdata, `/logs/` Dozzle, basic auth; `deploy/nginx/monitor.bonbocon.com`). Check the alert in Dozzle ->
 Notifications -> Test.
 
 ### Updating

@@ -12,6 +12,8 @@ services:
     environment:
       DOZZLE_FILTER: name=cheflan-api
       DOZZLE_NO_ANALYTICS: "true"
+      # Served at https://monitor.bonbocon.com/logs/ (nginx + basic auth); the tunnel URL is localhost:8081/logs/.
+      DOZZLE_BASE: /logs
       # Read by Dozzle when it sends an alert; notifications.yml only holds ${DISCORD_WEBHOOK_URL}.
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:?DISCORD_WEBHOOK_URL is required}
     volumes:
