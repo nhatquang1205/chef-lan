@@ -14,6 +14,7 @@ Postgres container that is already running, behind the nginx that already termin
 | 4 | [Compose and nginx](plans/04-compose-and-nginx.md) | the service on the VPS, reachable at `https://<domain>/api/…` | **done** (files written; untested on the VPS) |
 | 5 | [CI/CD](plans/05-ci-cd.md) | GitHub Actions: checks, then deploy on push to `main` | **done** (workflow written; first run pending) |
 | 6 | [Web repo switch-over](plans/06-web-switch-over.md) | chef-lan-web points at the live API | todo |
+| 7 | [bonbocon.com domains](plans/07-bonbocon-domains.md) | courses / admin / api hosts, CORS, redirects from DuckDNS | todo |
 
 ## Target shape
 

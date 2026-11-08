@@ -5,7 +5,7 @@ and the generated schema SQL to the VPS and runs it. The VPS never needs this re
 Design and reasoning: `docs/deploy-api/`.
 
 ```
-https://<domain>/api/ -> nginx -> 127.0.0.1:5100 -> cheflan-api (container) -> postgres (container)
+https://api.bonbocon.com -> nginx -> 127.0.0.1:5100 -> cheflan-api (container) -> postgres (container)
 ```
 
 ## One-time setup on the VPS
@@ -58,7 +58,10 @@ Smtp__Password=<16-character app password, no spaces>
 Smtp__FromAddress=<the same gmail address>
 Smtp__FromDisplayName=Bon Bocon
 # The customer website (no trailing slash): invitation links point here. Required when Smtp__Host is set.
-Web__PublicBaseUrl=https://<customer website domain>
+Web__PublicBaseUrl=https://courses.bonbocon.com
+# The website and the admin call this API from the browser (cross-origin): both origins are required.
+Cors__AllowedOrigins__0=https://courses.bonbocon.com
+Cors__AllowedOrigins__1=https://admin.bonbocon.com
 
 # FIRST DEPLOY ONLY - remove these three lines afterwards, then redeploy:
 Seed__RunOnStartup=true
@@ -75,8 +78,19 @@ Seed__AdminPassword=<a strong temporary password>
 
 ### 3. nginx
 
-Paste `deploy/nginx-api.conf` (both `location` blocks) into the chef-lan-web `server` block, then
-`sudo nginx -t && sudo systemctl reload nginx`.
+The API has its own host, `api.bonbocon.com`. In Cloudflare, the `A` records (`api`, `courses`, `admin`, `@`, `www`) point
+at the VPS IP, **DNS only** (grey cloud; no AAAA, the VPS has no IPv6). `deploy/nginx/` has one file per server block:
+
+- `api.bonbocon.com`: copy to `/etc/nginx/sites-available/`, `sudo ln -s` into `sites-enabled`,
+  `sudo nginx -t && sudo systemctl reload nginx`, then `sudo certbot --nginx -d api.bonbocon.com`. It proxies the
+  whole host to 5100 (6 MB bodies, the uploads block with `proxy_request_buffering off`) and keeps `/health` unexposed.
+- `bonbocon-root`: `bonbocon.com` and `www` -> `https://courses.bonbocon.com` (installed with the new hosts).
+- `duckdns-redirects`: the old DuckDNS hosts -> the new ones (replaces the old site files, last step)
+  (path and query kept). `course-cheflan.duckdns.org` keeps proxying `/api/` **until SePay's IPN URL is changed**; then
+  remove that block. After certbot adds a 443 block for `bonbocon.com`/`www`, it must also just return the 301.
+
+The website and admin blocks are in their own repos (`chef-lan-web/deploy/nginx.conf`, `chef-lan-admin/deploy/nginx.conf`).
+**SePay's IPN URL** (SePay dashboard) is `https://api.bonbocon.com/api/v1/payments/sepay/ipn`.
 
 ### 4. GitHub
 
@@ -103,7 +117,7 @@ Two services, split by what they are good at (the same split as wish-list for im
    `Storage__B2__PublicBaseUrl` (a custom domain or CDN in front of the bucket, no trailing slash).
 4. Bucket settings -> Lifecycle: **keep only the last version** of a file. Deleting a thumbnail on a
    versioned bucket only hides it; without that rule B2 keeps (and bills) the hidden copy.
-5. Images are small, so uploads go through the API (nginx allows 6 MB on `/api/`).
+5. Images are small, so uploads go through the API (nginx allows 6 MB on the API host).
 
 **Bunny (videos)**: library id and the two keys from the Stream library's dashboard.
 
@@ -125,8 +139,8 @@ upload answers 503. Everything else keeps working.
 
 ## After the first deploy
 
-1. `curl -s https://<domain>/api/v1/courses` returns JSON; `curl -I https://<domain>/health` returns
-   the website's 404 (the API's health endpoint is not public).
+1. `curl -s https://api.bonbocon.com/api/v1/courses` returns JSON; `curl -I https://api.bonbocon.com/health` returns
+   404 (the API's health endpoint is not public).
 2. Log in as the seeded admin (`POST /api/v1/admins/auth/login`), call
    `POST /api/v1/admins/auth/change-password`, then **delete the `Seed__*` lines from `.env`** and redeploy.
 3. **Check the rate limit sees real clients:** six wrong logins from your own connection must give a

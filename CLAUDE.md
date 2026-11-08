@@ -285,7 +285,8 @@ Boundary invariants — these are what make a future service split cheap:
   read-only apart from auth. Admin controllers use `[Authorize(Policy = StaffOrAdmin)]`;
   there is no Staff-vs-Admin permission split.
 - CORS: policy `Web`, origins from `Cors:AllowedOrigins` (empty = no cross-origin access;
-  `http://localhost:3000` in Development; production via `Cors__AllowedOrigins__0`). No
+  `http://localhost:3000` in Development; production lists both front ends, `Cors__AllowedOrigins__0`
+  = the website, `__1` = the admin). No
   credentials — tokens are in JSON bodies. The customer web app is a separate repo
   (`chef-lan-web`, see `docs/customer-web/`).
 - Enums travel as **strings** (`"status": "InActive"`), via `JsonStringEnumConverter`, registered for both MVC and the minimal-API options (OpenAPI
@@ -303,8 +304,10 @@ Boundary invariants — these are what make a future service split cheap:
 
 ## Deployment
 
-Production runs as a container (`Dockerfile`) behind nginx on the same domain as the website
-(`/api/` -> `127.0.0.1:5100`), next to the shared Postgres container. `deploy/` holds the compose
+Production runs as a container (`Dockerfile`) behind nginx on its own host, `api.bonbocon.com` (whole host ->
+`127.0.0.1:5100`; `deploy/nginx/`), next to the shared Postgres container. The website is `courses.bonbocon.com`,
+the admin `admin.bonbocon.com`; both call the API cross-origin. The old DuckDNS hosts only redirect
+(`deploy/nginx/duckdns-redirects`, `bonbocon-root`; the old course host still proxies `/api/` until SePay's IPN URL moves). `deploy/` holds the compose
 file, `deploy-api.sh` and the VPS setup guide; `.github/workflows/deploy.yml` builds, pushes to GHCR
 and deploys. Design: `docs/deploy-api/`. Things that bite:
 
@@ -318,7 +321,8 @@ and deploys. Design: `docs/deploy-api/`. Things that bite:
 - Migrations are applied by the deploy from the generated idempotent SQL, as the app's own database
   role, before the new container starts. Keep migrations backwards-compatible for one release:
   rollback re-deploys the previous image against the newer schema.
-- CORS is empty in production (same origin); only Development allows `http://localhost:3000`.
+- CORS must list both front ends in production (`Cors__AllowedOrigins__0=https://courses.bonbocon.com`, `__1=https://admin.bonbocon.com`);
+  only Development allows `http://localhost:3000`. `Web__PublicBaseUrl=https://courses.bonbocon.com`.
 
 ## Payments: orders paid on SePay's hosted page (Payment Gateway)
 
@@ -473,7 +477,7 @@ collision via `GenerateUnique`.
   Keep it that way: no `IFormFile`, no `ReadFormAsync`, no buffering on this path. The video's id
   (`videoId`) goes into a lesson video's `externalId`. A failed or aborted upload deletes the empty
   Bunny video it created. **Two things to watch on the VPS:** nginx must have
-  `proxy_request_buffering off` on `/api/v1/admins/uploads/` (see `deploy/nginx-api.conf`), or it
+  `proxy_request_buffering off` on `/api/v1/admins/uploads/` (see `deploy/nginx/api.bonbocon.com`), or it
   spools the whole file to disk first; and Bunny's video `PUT` is sent with chunked transfer
   encoding (the docs do not say whether `Content-Length` is required). If Bunny ever rejects that,
   add a `size` form field and set the content length from it.

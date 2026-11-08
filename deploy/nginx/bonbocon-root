@@ -1,0 +1,16 @@
+# bonbocon.com and www -> the website. Copy to /etc/nginx/sites-available/bonbocon-root, enable it
+# (sudo ln -s /etc/nginx/sites-available/bonbocon-root /etc/nginx/sites-enabled/), nginx -t, reload, then
+#   sudo certbot --nginx -d bonbocon.com -d www.bonbocon.com
+# Installed together with the new hosts (it does not overlap with the old DuckDNS blocks).
+
+# --- bonbocon.com and www -> the website ---------------------------------------------------------
+# After `sudo certbot --nginx -d bonbocon.com -d www.bonbocon.com`, certbot adds a 443 block for these
+# hosts. That 443 block must ALSO just `return 301 https://courses.bonbocon.com$request_uri;`
+# (no root, no proxy): edit it if certbot copied anything else into it.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name bonbocon.com www.bonbocon.com;
+
+    return 301 https://courses.bonbocon.com$request_uri;
+}

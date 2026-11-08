@@ -1,0 +1,49 @@
+# The API's own host. Copy to /etc/nginx/sites-available/api.bonbocon.com, then:
+#   sudo ln -s /etc/nginx/sites-available/api.bonbocon.com /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#   sudo certbot --nginx -d api.bonbocon.com
+# certbot rewrites this block to listen on 443 and adds the http -> https redirect.
+# The website and the admin call this host from the browser (CORS: Cors__AllowedOrigins in the API's .env).
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name api.bonbocon.com;
+
+    # /health is deliberately NOT public.
+    location = /health {
+        return 404;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:5100;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # OVERWRITE rather than append ($proxy_add_x_forwarded_for): a client-supplied header must
+        # never reach the API, or anyone could pick their own IP and dodge the login rate limit.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Small JSON, plus course create/update as multipart with a thumbnail (5 MB image + form fields).
+        client_max_body_size 6m;
+    }
+
+    # Uploads: files are streamed through the API to Bunny, so the limits differ from the rest of the API.
+    # `^~` makes this prefix win over `location /` above.
+    location ^~ /api/v1/admins/uploads/ {
+        proxy_pass http://127.0.0.1:5100;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 8g;          # matches the API's per-request video limit
+        # CRITICAL: pass the body through as it arrives. With the default (on), nginx first spools the
+        # whole upload to its temp directory on disk, and a few large videos would fill the VPS.
+        proxy_request_buffering off;
+        client_body_timeout 3600s;        # a big file on a slow connection takes a long time
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+    }
+}
