@@ -12,6 +12,7 @@ tab. It shows the video inside our layout, knows which course and lesson it belo
 | 2 | [Watch page](plans/02-watch-page.md) | `/courses/{slug}/watch/{videoId}` with the embedded player | **done** |
 | 3 | [Preview limit](plans/03-preview-limit.md) | stop playback at `freeTillSeconds`, block seeking past it | **done** |
 | 4 | [Outline buttons](plans/04-outline-buttons.md) | WATCH VIDEO / WATCH PREVIEW labels, links to the page | **done** |
+| 5 | [MediaCage Basic DRM](plans/05-mediacage-basic.md) | free Bunny DRM on the library against browser downloaders (dashboard only) | todo |
 
 ## Decisions (proposed — see "Open items")
 
