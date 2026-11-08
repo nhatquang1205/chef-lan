@@ -16,8 +16,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         {
             t.HasCheckConstraint("ck_orders_status", "status IN (1, 2, 3, 4)");
             t.HasCheckConstraint("ck_orders_payment_method", "payment_method IN (1, 2, 3)");
-            t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2)");
-            t.HasCheckConstraint("ck_orders_amount_positive", "amount_vnd > 0");
+            t.HasCheckConstraint("ck_orders_paid_via", "paid_via IS NULL OR paid_via IN (1, 2, 3)");
+            t.HasCheckConstraint("ck_orders_amount_non_negative", "amount_vnd >= 0");
             t.HasCheckConstraint("ck_orders_paid_has_date", "status <> 2 OR paid_at IS NOT NULL");
             t.HasCheckConstraint("ck_orders_manual_has_reason", "paid_via IS DISTINCT FROM 2 OR paid_reason IS NOT NULL");
         });
@@ -53,7 +53,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.PaidVia)
             .HasConversion<int?>()
-            .HasComment("1=Webhook, 2=Manual");
+            .HasComment("1=Webhook, 2=Manual, 3=Free");
 
         builder.Property(o => o.PaidReason).HasMaxLength(300);
 

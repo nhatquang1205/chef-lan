@@ -7,4 +7,7 @@ public enum OrderPaidVia
 
     /// <summary>Staff marked it paid by hand, or linked a bank transaction to it.</summary>
     Manual = 2,
+
+    /// <summary>A free course: paid when created, nothing to collect.</summary>
+    Free = 3,
 }

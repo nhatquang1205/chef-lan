@@ -99,5 +99,7 @@ and refund the money by hand); invoices (hóa đơn điện tử).
 | B2 | chef-lan | [Contact orders and the admin order list](plans/02-contact-orders-and-admin-list.md) | done |
 | B3 | chef-lan | [Orders created by staff](plans/03-staff-orders.md) | done |
 | B4 | chef-lan | [Switch bank transfer off](plans/04-bank-transfer-switch.md) | done |
-| A2 | chef-lan-admin | `docs/plans/20-create-order.md` | todo |
+| B5 | chef-lan | [Free courses granted on order](plans/05-free-courses.md) | done |
+| A2 | chef-lan-admin | `docs/plans/20-create-order.md` | done |
+| A3 | chef-lan-admin | `docs/plans/21-free-orders.md` | done |
 | W | chef-lan-web | `docs/plans/` checkout page + buy button | see that repo |

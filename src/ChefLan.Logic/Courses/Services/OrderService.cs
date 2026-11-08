@@ -71,6 +71,11 @@ internal sealed class OrderService(
         var kind = item.Value.Kind;
         var targetId = kind == OrderItemKind.Course ? item.Value.CourseId!.Value : item.Value.LessonId!.Value;
 
+        if (item.Value.UnitPriceVnd == 0)
+        {
+            return await CreateFreeAsync(customerId, request, item.Value, now, cancellationToken);
+        }
+
         // The same item at the same price: hand back the order the customer already has.
         var existing = await orders.FindPendingForItemAsync(customerId, kind, targetId, now, cancellationToken);
 
@@ -106,6 +111,40 @@ internal sealed class OrderService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return order.ToResponse(settings, now);
+    }
+
+    private async Task<Result<OrderResponse>> CreateFreeAsync(
+        long customerId,
+        CreateOrderRequest request,
+        OrderItem item,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var order = new Order
+        {
+            Code = await NewCodeAsync(cancellationToken),
+            CustomerId = customerId,
+            AmountVnd = 0,
+            PaymentMethod = request.Method,
+            ExpiresAt = now,
+            Items = [item],
+        };
+
+        var saved = await unitOfWork.InTransactionAsync<Order>(async () =>
+        {
+            orders.Add(order);
+
+            var paid = await fulfilment.MarkPaidAsync(order, OrderPaidVia.Free, null, null, null, cancellationToken);
+
+            if (paid.IsFailure)
+            {
+                return paid.Error;
+            }
+
+            return paid.Value ? EnrollmentErrors.AlreadyActive : order;
+        }, cancellationToken);
+
+        return saved.IsFailure ? saved.Error : order.ToResponse(settings, now);
     }
 
     public async Task<Result<OrderResponse>> GetAsync(long customerId, string code, CancellationToken cancellationToken = default)
@@ -481,7 +520,9 @@ internal sealed class OrderService(
                 return quote.Error;
             }
 
-            if (!Vnd.IsValid(quote.Value.FinalPriceVnd) || quote.Value.FinalPriceVnd <= 0)
+            var free = course.PriceVnd == 0 && quote.Value.FinalPriceVnd == 0;
+
+            if (!Vnd.IsValid(quote.Value.FinalPriceVnd) || (quote.Value.FinalPriceVnd <= 0 && !free))
             {
                 return OrderErrors.NotForSale;
             }

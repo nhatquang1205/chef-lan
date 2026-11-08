@@ -153,6 +153,56 @@ public class OrderServiceTests
         Assert.Equal(900_000m, world.CourseGrants.Single().AmountPaidVnd);
     }
 
+    [Fact]
+    public async Task A_free_course_order_is_paid_and_granted_when_created()
+    {
+        var world = new FakeWorld { CoursePrice = 0, QuotePrice = 0 };
+
+        var result = await new OrderHarness(world).Service.CreateAsync(CustomerId, Contact);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(OrderStatus.Paid, result.Value.Status);
+        Assert.Equal(0m, result.Value.AmountVnd);
+        Assert.Null(result.Value.Payment);
+
+        var order = world.Orders.Single();
+        Assert.Equal(OrderPaidVia.Free, order.PaidVia);
+        Assert.Null(order.PaidReason);
+        Assert.Null(order.PaidByStaffId);
+        Assert.Null(order.PaymentTransactionId);
+
+        var grant = world.CourseGrants.Single();
+        Assert.Equal(0m, grant.AmountPaidVnd);
+        Assert.Equal(EnrollmentSource.OnlineCheckout, grant.Source);
+    }
+
+    [Fact]
+    public async Task A_course_discounted_to_zero_is_still_not_for_sale()
+    {
+        var world = new FakeWorld { CoursePrice = 800_000, QuotePrice = 0 };
+
+        var result = await new OrderHarness(world).Service.CreateAsync(CustomerId, Contact);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(OrderErrors.NotForSale, result.Error);
+        Assert.Empty(world.Orders);
+    }
+
+    [Fact]
+    public async Task Asking_again_for_a_free_course_already_owned_is_refused()
+    {
+        var world = new FakeWorld { CoursePrice = 0, QuotePrice = 0 };
+        var service = new OrderHarness(world).Service;
+
+        await service.CreateAsync(CustomerId, Contact);
+        world.CustomerAlreadyOwns = true;
+        var again = await service.CreateAsync(CustomerId, Contact);
+
+        Assert.True(again.IsFailure);
+        Assert.Equal(OrderErrors.AlreadyOwned, again.Error);
+        Assert.Single(world.Orders);
+    }
+
     private static OrderItem Item(long courseId, decimal list, decimal unit) => new()
     {
         Kind = OrderItemKind.Course,
@@ -192,12 +242,12 @@ internal sealed class OrderHarness
         var courses = Stub.Of<ICourseRepository>(new()
         {
             [nameof(ICourseRepository.GetPublishedIdBySlugAsync)] = _ => Task.FromResult<long?>(10),
-            [nameof(ICourseRepository.GetByIdAsync)] = _ => Task.FromResult<Course?>(new Course { Id = 10, Slug = "macaron", Title = "Macaron" }),
+            [nameof(ICourseRepository.GetByIdAsync)] = _ => Task.FromResult<Course?>(new Course { Id = 10, Slug = "macaron", Title = "Macaron", PriceVnd = world.CoursePrice }),
         });
 
         var enrollments = Stub.Of<IEnrollmentRepository>(new()
         {
-            [nameof(IEnrollmentRepository.OwnedCourseIdsAsync)] = _ => Task.FromResult<IReadOnlySet<long>>(new HashSet<long>()),
+            [nameof(IEnrollmentRepository.OwnedCourseIdsAsync)] = _ => Task.FromResult<IReadOnlySet<long>>(world.CustomerAlreadyOwns ? new HashSet<long> { 10 } : new HashSet<long>()),
         });
 
         var customers = Stub.Of<ICustomerDirectory>(new()

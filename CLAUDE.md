@@ -337,6 +337,7 @@ staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the 
   (Logic, pure) holds the shared-module rule (a module included by several selected courses is charged once, to the course with the smallest
   discount for it; free if it is selected too or already owned) and the split of staff's price edits and order discount. A multi-item order
   records each enrollment's `AmountPaidVnd` from its item's `UnitPriceVnd`; staff-created grants use source `AdminGrant`.
+- **Free courses:** a course whose list price is 0 (not one discounted to 0) is granted when the order is created: `OrderService.CreateAsync` adds it and calls `MarkPaidAsync(OrderPaidVia.Free)` inside `InTransactionAsync`, no staff, no transaction, `amount_vnd = 0` (`ck_orders_amount_non_negative`). Staff orders still need a total > 0; lessons priced 0 are still not for sale. Plan `docs/payments/plans/05-free-courses.md`.
 - **Two different secrets:** `Payment:SePay:SecretKey` (merchant Secret Key, signs the form) and `Payment:SePay:IpnSecret` (IPN tab, checked on the
   notification). Mixing them up makes SePay reject the form or us reject SePay. Neither is ever sent to the browser.
 - **`SePayIpnParser` and `PaymentInstructions.Sign` are the only places that know SePay's field names and signing rule** (pinned by a test with a signature

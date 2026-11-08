@@ -32,6 +32,8 @@ internal sealed class FakeWorld
 
     public decimal QuotePrice { get; set; } = 1_000_000;
 
+    public decimal CoursePrice { get; set; } = 1_000_000;
+
     private long _nextId = 1;
 
     public FakeSettings Settings { get; } = new();
