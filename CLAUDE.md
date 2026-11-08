@@ -306,8 +306,8 @@ Boundary invariants — these are what make a future service split cheap:
 
 Production runs as a container (`Dockerfile`) behind nginx on its own host, `api.bonbocon.com` (whole host ->
 `127.0.0.1:5100`; `deploy/nginx/`), next to the shared Postgres container. The website is `courses.bonbocon.com`,
-the admin `admin.bonbocon.com`; both call the API cross-origin. The old DuckDNS hosts only redirect
-(`deploy/nginx/duckdns-redirects`, `bonbocon-root`; the old course host still proxies `/api/` until SePay's IPN URL moves). `deploy/` holds the compose
+the admin `admin.bonbocon.com`; both call the API cross-origin. All hosts are behind Cloudflare's proxy (Full (strict) TLS);
+`deploy/nginx/cloudflare-realip.conf` restores visitor IPs from `CF-Connecting-IP`, or the login rate limit would see Cloudflare edges. Cloudflare caps bodies at 100 MB: big videos are uploaded in the Bunny dashboard, not through the admin. The DuckDNS hosts are retired. `deploy/` holds the compose
 file, `deploy-api.sh` and the VPS setup guide; `.github/workflows/deploy.yml` builds, pushes to GHCR
 and deploys. Design: `docs/deploy-api/`. Things that bite:
 

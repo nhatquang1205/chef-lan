@@ -79,15 +79,18 @@ Seed__AdminPassword=<a strong temporary password>
 ### 3. nginx
 
 The API has its own host, `api.bonbocon.com`. In Cloudflare, the `A` records (`api`, `courses`, `admin`, `@`, `www`) point
-at the VPS IP, **DNS only** (grey cloud; no AAAA, the VPS has no IPv6). `deploy/nginx/` has one file per server block:
+at the VPS IP, **proxied** (orange cloud; no AAAA, the VPS has no IPv6), SSL/TLS mode **Full (strict)**. `deploy/nginx/` has one file per server block:
 
 - `api.bonbocon.com`: copy to `/etc/nginx/sites-available/`, `sudo ln -s` into `sites-enabled`,
   `sudo nginx -t && sudo systemctl reload nginx`, then `sudo certbot --nginx -d api.bonbocon.com`. It proxies the
   whole host to 5100 (6 MB bodies, the uploads block with `proxy_request_buffering off`) and keeps `/health` unexposed.
 - `bonbocon-root`: `bonbocon.com` and `www` -> `https://courses.bonbocon.com` (installed with the new hosts).
-- `duckdns-redirects`: the old DuckDNS hosts -> the new ones (replaces the old site files, last step)
-  (path and query kept). `course-cheflan.duckdns.org` keeps proxying `/api/` **until SePay's IPN URL is changed**; then
-  remove that block. After certbot adds a 443 block for `bonbocon.com`/`www`, it must also just return the 301.
+- `cloudflare-realip.conf`: goes to `/etc/nginx/conf.d/`; restores the visitor's IP from `CF-Connecting-IP` for requests from
+  Cloudflare's ranges, so the API's per-IP login rate limit still sees real visitors.
+
+Behind Cloudflare's proxy (Free plan) a request body is limited to **100 MB** and a response must start within ~100 s: a
+big video cannot be uploaded through the admin. Upload it in the Bunny dashboard and paste its video ID into the lesson
+video's `externalId`. The old DuckDNS hosts are switched off (their site files removed from `sites-enabled`).
 
 The website and admin blocks are in their own repos (`chef-lan-web/deploy/nginx.conf`, `chef-lan-admin/deploy/nginx.conf`).
 **SePay's IPN URL** (SePay dashboard) is `https://api.bonbocon.com/api/v1/payments/sepay/ipn`.
