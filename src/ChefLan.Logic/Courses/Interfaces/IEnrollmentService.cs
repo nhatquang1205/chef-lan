@@ -25,6 +25,12 @@ public interface IEnrollmentService
     /// <summary>The signed-in customer's library: published courses they own whole or in part, newest grant first.</summary>
     Task<IReadOnlyList<MyCourseResponse>> ListMyCoursesAsync(long customerId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// What the website needs to personalise the catalog: the courses owned whole, and the reduced price of every
+    /// published course not owned whose price drops because of shared modules the customer owns.
+    /// </summary>
+    Task<MyCatalogStateResponse> GetMyCatalogStateAsync(long customerId, CancellationToken cancellationToken = default);
+
     /// <summary>For a signed-in customer: whole-course ownership and owned lessons for one published course.</summary>
     /// <summary>For a signed-in staff account: everything published in the course is accessible.</summary>
     Task<Result<CourseAccessResponse>> GetStaffCourseAccessAsync(string courseSlug, CancellationToken cancellationToken = default);

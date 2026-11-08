@@ -78,6 +78,8 @@ internal sealed class FakeSettings : IPaymentSettings
 
     public bool CheckoutEnabled { get; set; } = true;
 
+    public bool SePayConfigured { get; set; } = true;
+
     public string MerchantId => "SP-TEST-1";
 
     public string SecretKey => "test-secret";
@@ -218,6 +220,8 @@ internal sealed class FakeEnrollmentService(FakeWorld world) : IEnrollmentServic
     public Task<Result<CustomerAccessResponse>> GetCustomerAccessAsync(long customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<MyCourseResponse>> ListMyCoursesAsync(long customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<MyCatalogStateResponse> GetMyCatalogStateAsync(long customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<Result<CourseAccessResponse>> GetStaffCourseAccessAsync(string courseSlug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

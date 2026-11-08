@@ -18,6 +18,28 @@ internal sealed class CourseIncludeRepository(CoursesDbContext context) : ICours
             .ThenBy(i => i.IncludedCourseId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CourseInclude>> ListByIncludedCoursesAsync(
+        IReadOnlyCollection<long> includedCourseIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (includedCourseIds.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = includedCourseIds.ToList();
+
+        return await context.CourseIncludes
+            .AsNoTracking()
+            .Include(i => i.IncludedCourse)
+            .Include(i => i.Course)
+            .Where(i => ids.Contains(i.IncludedCourseId) && i.Course!.Status == CourseStatus.Published)
+            .OrderBy(i => i.CourseId)
+            .ThenBy(i => i.SortOrder)
+            .ThenBy(i => i.IncludedCourseId)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<CourseInclude?> GetAsync(
         long courseId,
         long includedCourseId,

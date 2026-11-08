@@ -10,8 +10,14 @@ public interface IPaymentSettings
     /// <summary>The payment provider's name, as stored on bank transactions.</summary>
     string Provider { get; }
 
-    /// <summary>True when the merchant, both secrets and the website address are set. Orders cannot be created otherwise.</summary>
+    /// <summary>True when bank transfer is switched on and SePay is configured. Transfer orders cannot be created otherwise.</summary>
     bool CheckoutEnabled { get; }
+
+    /// <summary>
+    /// True when the merchant, both secrets and the website address are set, whether or not bank transfer is switched on.
+    /// The notification endpoint needs only this, so a transfer made before the switch is still recorded.
+    /// </summary>
+    bool SePayConfigured { get; }
 
     /// <summary>The merchant id ("Mã đơn vị") from SePay's dashboard.</summary>
     string MerchantId { get; }

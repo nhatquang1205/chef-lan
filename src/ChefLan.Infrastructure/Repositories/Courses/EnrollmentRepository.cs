@@ -71,6 +71,31 @@ internal sealed class EnrollmentRepository(CoursesDbContext context) : IEnrollme
         return direct.Concat(viaParent).ToHashSet();
     }
 
+    public async Task<IReadOnlySet<long>> ListOwnedCourseIdsAsync(
+        long customerId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        var direct = await context.Enrollments
+            .AsNoTracking()
+            .Where(e => e.CustomerId == customerId
+                && e.Status == EnrollmentStatus.Active
+                && (e.ExpiresAt == null || e.ExpiresAt > utcNow))
+            .Select(e => e.CourseId)
+            .ToListAsync(cancellationToken);
+
+        var viaParent = await context.CourseIncludes
+            .AsNoTracking()
+            .Where(i => context.Enrollments.Any(e => e.CustomerId == customerId
+                && e.CourseId == i.CourseId
+                && e.Status == EnrollmentStatus.Active
+                && (e.ExpiresAt == null || e.ExpiresAt > utcNow)))
+            .Select(i => i.IncludedCourseId)
+            .ToListAsync(cancellationToken);
+
+        return direct.Concat(viaParent).ToHashSet();
+    }
+
     public async Task<(bool HasCourseAccess, IReadOnlyList<long> LessonIds)> GetCourseAccessAsync(
         long customerId,
         long courseId,

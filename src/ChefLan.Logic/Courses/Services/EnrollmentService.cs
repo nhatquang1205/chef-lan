@@ -9,6 +9,7 @@ using ChefLan.Logic.Courses.Contracts.Responses;
 using ChefLan.Logic.Courses.Errors;
 using ChefLan.Logic.Courses.Interfaces;
 using ChefLan.Logic.Courses.Mapping;
+using ChefLan.Logic.Courses.Payments;
 
 namespace ChefLan.Logic.Courses.Services;
 
@@ -233,6 +234,30 @@ internal sealed class EnrollmentService(
             .ToList();
     }
 
+    public async Task<MyCatalogStateResponse> GetMyCatalogStateAsync(
+        long customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var owned = await enrollments.ListOwnedCourseIdsAsync(customerId, clock.UtcNow, cancellationToken);
+        var rows = await includes.ListByIncludedCoursesAsync(owned.ToList(), cancellationToken);
+
+        var prices = rows
+            .Where(r => !owned.Contains(r.CourseId))
+            .GroupBy(r => r.CourseId)
+            .Select(g =>
+            {
+                var listPrice = g.First().Course!.PriceVnd;
+                var (_, finalPrice) = IncludeDiscounts.Apply(listPrice, g, owned);
+
+                return new MyCoursePriceResponse(g.Key, listPrice, finalPrice);
+            })
+            .Where(p => p.FinalPriceVnd < p.ListPriceVnd)
+            .OrderBy(p => p.CourseId)
+            .ToList();
+
+        return new MyCatalogStateResponse(owned.Order().ToList(), prices);
+    }
+
     public async Task<Result<CourseAccessResponse>> GetStaffCourseAccessAsync(
         string courseSlug,
         CancellationToken cancellationToken = default)
@@ -341,28 +366,9 @@ internal sealed class EnrollmentService(
         var rows = await includes.ListForCourseAsync(course.Id, cancellationToken);
         var have = await enrollments.OwnedCourseIdsAsync(customerId, rows.Select(r => r.IncludedCourseId).ToList(), now, cancellationToken);
 
-        // Cap each discount so the running total never passes the list price (the course may have been cheapened after the discount was set).
-        var remaining = course.PriceVnd;
-        var discounts = new List<QuoteDiscountResponse>();
+        var (discounts, finalPrice) = IncludeDiscounts.Apply(course.PriceVnd, rows, have);
 
-        foreach (var row in rows.Where(r => have.Contains(r.IncludedCourseId) && r.DiscountVnd > 0))
-        {
-            var amount = Math.Min(row.DiscountVnd, remaining);
-
-            if (amount <= 0)
-            {
-                break;
-            }
-
-            remaining -= amount;
-            discounts.Add(new QuoteDiscountResponse(
-                row.IncludedCourseId,
-                row.IncludedCourse?.Title ?? string.Empty,
-                amount,
-                $"Đã có khóa {row.IncludedCourse?.Title}"));
-        }
-
-        return (new CourseQuoteResponse(course.PriceVnd, discounts, remaining), false);
+        return (new CourseQuoteResponse(course.PriceVnd, discounts, finalPrice), false);
     }
 
     private async Task<Result<CustomerRef>> ResolveCustomerAsync(

@@ -32,6 +32,14 @@ public interface IEnrollmentRepository
         DateTime utcNow,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Every course the customer owns whole: active, unexpired enrollments, plus the courses those include.
+    /// </summary>
+    Task<IReadOnlySet<long>> ListOwnedCourseIdsAsync(
+        long customerId,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Does the customer own the whole course, and which individual lessons of it?</summary>
     Task<(bool HasCourseAccess, IReadOnlyList<long> LessonIds)> GetCourseAccessAsync(
         long customerId,

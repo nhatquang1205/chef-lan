@@ -328,6 +328,7 @@ browser POSTs to SePay's hosted payment page. SePay's IPN (`POST /api/v1/payment
 staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the same SaveChanges. Things that bite:
 
 - **Contact orders:** `CreateOrderRequest.Method` is `BankTransfer` (default) or `ContactChef`. Only BankTransfer needs SePay (`CheckoutDisabled` 503 otherwise); a contact order has `payment: null`, lasts `Payment:ContactOrderLifetimeDays` (7) and is approved by staff through the same `mark-paid`, expired or not. Re-requesting the item with the other method switches the waiting order and keeps its code. `GET /api/v1/admins/orders` filters by `status` (EFFECTIVE status), `paymentMethod`, `customerId`, `q`.
+- **Bank transfer is off by default** (`Payment:BankTransferEnabled`, set `Payment__BankTransferEnabled=true` to turn on): `/checkout/config` says `enabled: false` and a `BankTransfer` order is 503; `IPaymentSettings.SePayConfigured` (not `CheckoutEnabled`) gates the IPN, so a transfer made before the switch is still paid. Plan: `docs/payments/plans/04-bank-transfer-switch.md`.
 - **The transaction is stored first** and `(provider, provider_transaction_id)` is unique: that is the idempotency, so a retried
   notification is harmless. Never match before storing.
 - **Orders created by staff** (`POST /api/v1/admins/orders/quote`, `POST /api/v1/admins/orders`, `PaymentMethod = StaffCreated`): Paid when created
@@ -379,6 +380,7 @@ enrollment does not unlock it (only a `lesson_enrollments` row does), it require
 **recipe is returned only to a customer with access** (`recipesLocked` tells the page there is one), so the answer is
 `Cache-Control: private, no-store`. Playback responses carry `lessonSlug` so old watch links can redirect there.
 **Shared modules:** `courses.is_shared_module` marks a course other courses include. Only flagged courses can be included (409 `course.include_not_shared`, `course.shared_cannot_include`, `course.shared_in_use`); `GET /courses` hides them and `GET /api/v1/shared-modules` lists them. Spec: `docs/included-courses/spec.md`.
+`GET /api/v1/me/catalog-state` (customer only, `no-store`) is what the website personalises the catalog with: `ownedCourseIds` (owned whole, directly or via a parent) and `prices` (published courses not owned whose price drops because of owned shared modules). The discount maths is `IncludeDiscounts.Apply`, shared with the course quote. Spec: `docs/my-catalog/spec.md`.
 `GET /api/v1/me/courses` (customer only) is the library: published courses owned whole (`hasCourseAccess`, `courseExpiresAt`) or in part (`lessons`), active and unexpired only, newest grant first.
 
 ## Email

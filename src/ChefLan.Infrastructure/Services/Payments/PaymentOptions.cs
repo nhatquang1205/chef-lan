@@ -52,7 +52,12 @@ public sealed class PaymentOptions : IPaymentSettings
             SHA256.HashData(Encoding.UTF8.GetBytes(SePay.IpnSecret)));
     }
 
-    public bool CheckoutEnabled =>
+    /// <summary>Bank transfer can be offered. Off by default: customers contact chef Lan instead.</summary>
+    public bool BankTransferEnabled { get; set; }
+
+    public bool CheckoutEnabled => SePayConfigured && BankTransferEnabled;
+
+    public bool SePayConfigured =>
         !string.IsNullOrWhiteSpace(SePay.MerchantId)
         && !string.IsNullOrWhiteSpace(SePay.SecretKey)
         && !string.IsNullOrWhiteSpace(SePay.IpnSecret)

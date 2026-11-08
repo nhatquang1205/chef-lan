@@ -27,4 +27,23 @@ public sealed class MyCoursesController(IEnrollmentService enrollments, ICurrent
 
         return Ok(await enrollments.ListMyCoursesAsync(customerId, cancellationToken));
     }
+
+    /// <summary>
+    /// What the website needs to personalise the catalog: the ids of the courses the signed-in customer owns whole
+    /// (directly or through a course that includes them), and the reduced price of each published course they do not
+    /// own whose price drops because of shared modules they own. Never cached.
+    /// </summary>
+    [HttpGet("~/api/v1/me/catalog-state")]
+    [ProducesResponseType(typeof(MyCatalogStateResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<MyCatalogStateResponse>> CatalogState(CancellationToken cancellationToken)
+    {
+        if (!currentUser.TryGetCustomerId(out var customerId))
+        {
+            return Unauthorized();
+        }
+
+        Response.Headers.CacheControl = "private, no-store";
+
+        return Ok(await enrollments.GetMyCatalogStateAsync(customerId, cancellationToken));
+    }
 }

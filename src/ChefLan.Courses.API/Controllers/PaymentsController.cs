@@ -29,7 +29,7 @@ public sealed class PaymentsController(IPaymentService payments, IPaymentSetting
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> SePayIpn(CancellationToken cancellationToken)
     {
-        if (!settings.CheckoutEnabled)
+        if (!settings.SePayConfigured)
         {
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { success = false });
         }

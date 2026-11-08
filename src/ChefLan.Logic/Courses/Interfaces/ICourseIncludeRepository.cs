@@ -7,6 +7,14 @@ public interface ICourseIncludeRepository
     /// <summary>Tracked, with the included course loaded, ordered by sort_order then id.</summary>
     Task<IReadOnlyList<CourseInclude>> ListForCourseAsync(long courseId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Read-only: the include rows whose included course is in the set and whose parent is published, with both
+    /// courses loaded, ordered as <see cref="ListForCourseAsync"/> orders them (per parent).
+    /// </summary>
+    Task<IReadOnlyList<CourseInclude>> ListByIncludedCoursesAsync(
+        IReadOnlyCollection<long> includedCourseIds,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Tracked.</summary>
     Task<CourseInclude?> GetAsync(long courseId, long includedCourseId, CancellationToken cancellationToken = default);
 

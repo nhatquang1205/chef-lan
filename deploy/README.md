@@ -41,6 +41,7 @@ Video__Bunny__LibraryId=<...>
 Video__Bunny__ApiKey=<...>
 Video__Bunny__TokenSecurityKey=<...>
 # Online payment, SePay Payment Gateway (leave all of these out to keep checkout off):
+Payment__BankTransferEnabled=true   # default false: customers contact chef Lan; the IPN still works when SePay is configured
 Payment__SePay__MerchantId=<"Mã đơn vị" on SePay's merchant information page>
 Payment__SePay__SecretKey=<the merchant Secret Key from that page: signs the checkout form>
 Payment__SePay__IpnSecret=<the secret set on SePay's IPN tab: SePay sends it as X-Secret-Key>

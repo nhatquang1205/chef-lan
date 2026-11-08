@@ -92,6 +92,12 @@ public sealed record CourseQuoteResponse(decimal ListPriceVnd, IReadOnlyList<Quo
 /// <summary>Access to one included course: whole (owned directly or through a parent) and/or single lessons.</summary>
 public sealed record IncludedCourseAccessResponse(string Slug, bool HasCourseAccess, IReadOnlyList<long> LessonIds);
 
+/// <summary>A published course the customer does not own, whose price is reduced by modules they own.</summary>
+public sealed record MyCoursePriceResponse(long CourseId, decimal ListPriceVnd, decimal FinalPriceVnd);
+
+/// <summary>The courses the customer owns whole, and the reduced prices of the ones they do not.</summary>
+public sealed record MyCatalogStateResponse(IReadOnlyList<long> OwnedCourseIds, IReadOnlyList<MyCoursePriceResponse> Prices);
+
 /// <summary>One course in the signed-in customer's library.</summary>
 public sealed record MyCourseResponse
 {
