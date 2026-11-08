@@ -70,6 +70,7 @@ Index on `included_course_id` (reverse lookups: "who includes C").
 | W  | chef-lan-web | `docs/plans/02-included-courses.md` | todo |
 | A  | chef-lan-admin | `docs/plans/15-included-courses.md`, `16-grant-discounts.md` | todo |
 | B4 | chef-lan | [Mark a course as a shared module](plans/04-shared-module-flag.md) | done |
+| B5 | chef-lan + web | [Course list totals include shared modules](plans/05-list-totals.md) | done |
 | W2 | chef-lan-web | `docs/plans/05-shared-modules.md` | todo |
 | A2 | chef-lan-admin | `docs/plans/19-shared-modules.md` | todo |
 

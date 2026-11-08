@@ -93,6 +93,32 @@ internal sealed class CourseIncludeRepository(CoursesDbContext context) : ICours
             .ThenBy(c => c.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<long, (int LessonCount, int DurationSeconds)>> SumPublishedIncludedAsync(
+        IReadOnlyCollection<long> courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (courseIds.Count == 0)
+        {
+            return new Dictionary<long, (int, int)>();
+        }
+
+        var ids = courseIds.ToList();
+
+        var rows = await context.CourseIncludes
+            .AsNoTracking()
+            .Where(i => ids.Contains(i.CourseId) && i.IncludedCourse!.Status == CourseStatus.Published)
+            .GroupBy(i => i.CourseId)
+            .Select(g => new
+            {
+                CourseId = g.Key,
+                Lessons = g.Sum(i => i.IncludedCourse!.LessonCount),
+                Seconds = g.Sum(i => i.IncludedCourse!.TotalDurationSeconds),
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.CourseId, r => (r.Lessons, r.Seconds));
+    }
+
     public Task<int> CountIncludesAsync(long courseId, CancellationToken cancellationToken = default) =>
         context.CourseIncludes.CountAsync(i => i.CourseId == courseId, cancellationToken);
 

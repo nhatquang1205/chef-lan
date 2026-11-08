@@ -30,6 +30,14 @@ public interface ICourseIncludeRepository
     /// <summary>Read-only: the published courses that include this one, by title.</summary>
     Task<IReadOnlyList<Course>> ListPublishedParentsAsync(long includedCourseId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Read-only: per parent course, the summed lesson count and duration of the PUBLISHED courses it includes.
+    /// Parents with nothing to add are absent.
+    /// </summary>
+    Task<IReadOnlyDictionary<long, (int LessonCount, int DurationSeconds)>> SumPublishedIncludedAsync(
+        IReadOnlyCollection<long> courseIds,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountIncludesAsync(long courseId, CancellationToken cancellationToken = default);
 
     Task<int> CountIncludedInAsync(long courseId, CancellationToken cancellationToken = default);

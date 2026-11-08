@@ -26,6 +26,8 @@ public static class CourseMappings
         PriceDisplay = Vnd.ToDisplay(course.PriceVnd),
         LessonCount = course.LessonCount,
         TotalDurationSeconds = course.TotalDurationSeconds,
+        TotalLessonCount = course.LessonCount,
+        TotalDurationSecondsWithIncluded = course.TotalDurationSeconds,
         AccessDurationDays = course.AccessDurationDays,
         IsSharedModule = course.IsSharedModule,
         Categories = course.Categories(),

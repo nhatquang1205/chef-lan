@@ -34,6 +34,12 @@ public sealed record CourseListItemResponse
 
     public required int TotalDurationSeconds { get; init; }
 
+    /// <summary>Own lessons plus every published included course's lessons. Equals <see cref="LessonCount"/> where nothing is included.</summary>
+    public required int TotalLessonCount { get; init; }
+
+    /// <summary>Own duration plus every published included course's duration.</summary>
+    public required int TotalDurationSecondsWithIncluded { get; init; }
+
     /// <summary>Null means lifetime access.</summary>
     public int? AccessDurationDays { get; init; }
 

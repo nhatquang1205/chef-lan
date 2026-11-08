@@ -26,9 +26,10 @@ internal sealed class CourseCatalogService(
         CancellationToken cancellationToken = default)
     {
         var page = await courses.ListPublishedAsync(query, cancellationToken);
+        var included = await includes.SumPublishedIncludedAsync(page.Items.Select(c => c.Id).ToList(), cancellationToken);
 
         return PagedResult<CourseListItemResponse>.Create(
-            page.Items.Select(c => c.ToListItemResponse()).ToList(),
+            page.Items.Select(c => WithIncluded(c.ToListItemResponse(), included)).ToList(),
             page.Page,
             page.PageSize,
             page.TotalCount);
@@ -151,6 +152,17 @@ internal sealed class CourseCatalogService(
             Next = index < lessons.Count - 1 ? new LessonLinkResponse(lessons[index + 1].Slug, lessons[index + 1].Title) : null,
         };
     }
+
+    private static CourseListItemResponse WithIncluded(
+        CourseListItemResponse item,
+        IReadOnlyDictionary<long, (int LessonCount, int DurationSeconds)> included) =>
+        included.TryGetValue(item.Id, out var sum)
+            ? item with
+            {
+                TotalLessonCount = item.LessonCount + sum.LessonCount,
+                TotalDurationSecondsWithIncluded = item.TotalDurationSeconds + sum.DurationSeconds,
+            }
+            : item;
 
     // The outline carries no playable links: a link is minted per play by the playback endpoint, which
     // is also where entitlement is decided. Free videos are identified by IsFree / FreeTillSeconds.
