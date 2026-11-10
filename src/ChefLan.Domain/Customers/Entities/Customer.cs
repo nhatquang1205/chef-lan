@@ -20,8 +20,8 @@ public class Customer : AuditableSoftDeletableEntity
 
     public string? Phone { get; set; }
 
-    /// <summary>The display name chef Lan sees in the Facebook group.</summary>
-    public string? FacebookName { get; set; }
+    /// <summary>Code of one of the 34 provinces, e.g. "ha-noi". The list lives in code (ChefLan.Commons.Geography).</summary>
+    public string? ProvinceCode { get; set; }
 
     public string? FacebookProfileUrl { get; set; }
 

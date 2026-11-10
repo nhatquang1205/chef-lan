@@ -6,7 +6,8 @@ namespace ChefLan.Logic.Customers.Mapping;
 internal static class CustomerMappings
 {
     public static CustomerResponse ToResponse(this Customer customer) =>
-        new(customer.Id, customer.Email, customer.FullName, customer.Phone);
+        new(customer.Id, customer.Email, customer.FullName, customer.Phone, customer.ProvinceCode,
+            !string.IsNullOrWhiteSpace(customer.Phone) && !string.IsNullOrWhiteSpace(customer.ProvinceCode));
 
     public static CustomerStatus StatusOf(this Customer c, DateTime utcNow)
     {
@@ -29,10 +30,10 @@ internal static class CustomerMappings
     }
 
     public static CustomerAdminListItem ToListItem(this Customer c, CustomerAccessCounts counts, DateTime utcNow) =>
-        new(c.Id, c.FullName, c.Email, c.Phone, c.FacebookName, c.StatusOf(utcNow),
+        new(c.Id, c.FullName, c.Email, c.Phone, c.ProvinceCode, c.StatusOf(utcNow),
             c.InvitedAt, c.ActivatedAt, c.LastLoginAt, c.CreatedAt, counts.Courses, counts.Lessons);
 
     public static CustomerAdminDetail ToAdminDetail(this Customer c, DateTime utcNow) =>
-        new(c.Id, c.FullName, c.Email, c.Phone, c.FacebookName, c.FacebookProfileUrl, c.Note, c.IsActive,
+        new(c.Id, c.FullName, c.Email, c.Phone, c.ProvinceCode, c.FacebookProfileUrl, c.Note, c.IsActive,
             c.StatusOf(utcNow), c.InvitedAt, c.InviteExpiresAt, c.ActivatedAt, c.LastLoginAt, c.CreatedAt);
 }

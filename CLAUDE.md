@@ -223,6 +223,10 @@ a deliberate enumeration trade-off, flip it in `CustomerAuthService.LoginAsync` 
 `customers.email` and `customers.password_hash` are **both nullable**. Staff can record
 every member of an existing Facebook group — name, FB profile, phone, what they paid — and
 grant enrollments immediately, with no login. They sign in later once an invite is accepted.
+Rows without an email still exist from before, but the admin now **requires an email on create and update**
+(`docs/customer-profile/`). `customers.province_code` (one of 34, `ChefLan.Commons/Geography/VietnamProvinces.cs`, served by
+`GET /api/v1/provinces`) is optional in the admin; `CustomerResponse.profileComplete` = phone and province set, and
+`PUT /api/v1/me/profile` (customer only) sets name, phone and province. `facebook_name` is gone.
 
 Therefore **`enrollments.customer_id` references a customer, not a user.** There is no
 user → customer resolution step because there is nothing to resolve; a customer token's
@@ -407,7 +411,7 @@ use and when staff change the email. The mail (`CustomerEmails`, embedded templa
 `Infrastructure/Services/Email/Templates`) links to `{Web:PublicBaseUrl}/activate#token=...` — the token is in the
 **fragment** so it never reaches access logs. The website calls `POST /api/v1/auth/invitations/inspect` and
 `/accept`; accept sets the password, activates the account and returns the normal session. Both answer one code,
-`customer.invite_invalid`, for unknown, used and expired tokens. The mail is sent before the token is saved, so a
+`customer.invite_invalid`, for unknown, used and expired tokens. The admin CSV import creates customers one row at a time through this same create flow with `sendInvite: true` (a duplicate email is 409 `customer.email_already_used`); there is no batch endpoint. The mail is sent before the token is saved, so a
 failed send (`502 email.send_failed`) leaves the previous link working. Customer status (`Active`, `Invited`,
 `InviteExpired`, `NotInvited`, `Inactive`) is derived in `CustomerMappings.StatusOf` and mirrored in
 `CustomerRepository.ListAsync`; change both together.

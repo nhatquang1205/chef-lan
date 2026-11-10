@@ -14,7 +14,7 @@ public interface ICustomerRepository
 
     Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
 
-    /// <summary>Search covers name, email, phone and Facebook name; newest first.</summary>
+    /// <summary>Search covers name, email and phone; newest first.</summary>
     Task<PagedResult<Customer>> ListAsync(
         PagedRequest request,
         string? search,

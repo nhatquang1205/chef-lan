@@ -27,5 +27,9 @@ public interface ICustomerAuthService
     Task<Result<CustomerAuthResponse>> AcceptInvitationAsync(
         AcceptInvitationRequest request, ClientInfo client, CancellationToken cancellationToken = default);
 
+    /// <summary>Name, phone and province together; all required. Returns the updated customer.</summary>
+    Task<Result<CustomerResponse>> UpdateProfileAsync(
+        long customerId, UpdateProfileRequest request, CancellationToken cancellationToken = default);
+
     Task<Result<CustomerResponse>> GetMeAsync(long customerId, CancellationToken cancellationToken = default);
 }

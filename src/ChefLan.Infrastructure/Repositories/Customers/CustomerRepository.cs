@@ -38,8 +38,7 @@ internal sealed class CustomerRepository(CoursesDbContext context) : ICustomerRe
             query = query.Where(c =>
                 EF.Functions.ILike(c.FullName, pattern, LikePattern.EscapeCharacter)
                 || (c.Email != null && EF.Functions.ILike(c.Email, pattern, LikePattern.EscapeCharacter))
-                || (c.Phone != null && EF.Functions.ILike(c.Phone, pattern, LikePattern.EscapeCharacter))
-                || (c.FacebookName != null && EF.Functions.ILike(c.FacebookName, pattern, LikePattern.EscapeCharacter)));
+                || (c.Phone != null && EF.Functions.ILike(c.Phone, pattern, LikePattern.EscapeCharacter)));
         }
 
         // Mirrors CustomerMappings.StatusOf.

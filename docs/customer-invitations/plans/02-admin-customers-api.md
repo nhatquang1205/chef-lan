@@ -19,7 +19,7 @@ POST /api/v1/admins/customers/{id}/reactivate                 -> 204
 ```
 (`POST /{id}/invite` comes in B3; `POST` here accepts `sendInvite` but ignores it until B3, or B3 adds it.)
 
-- `q`: ILIKE on full_name, email, phone, facebook_name (escape LIKE metacharacters like `CourseRepository.EscapeLikePattern`).
+- `q`: ILIKE on full_name, email, phone (escape LIKE metacharacters like `CourseRepository.EscapeLikePattern`).
 - `status`: `Active | Invited | InviteExpired | NotInvited | Inactive` (rules in `../spec.md`). Newest first.
 - Request (create and update share it): `{ fullName (required ≤200), email?, phone?, facebookName?, facebookProfileUrl?, note?, sendInvite = false }`.
   Email lowercased + trimmed, valid format, unique among non-deleted customers → 409 `customer.email_already_used`.

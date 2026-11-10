@@ -1,3 +1,4 @@
+using ChefLan.Commons.Geography;
 using ChefLan.Logic.Customers.Contracts;
 using FluentValidation;
 
@@ -38,9 +39,12 @@ internal sealed class CustomerAdminRequestValidator : AbstractValidator<Customer
     public CustomerAdminRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Email).EmailAddress().MaximumLength(254).When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(254);
         RuleFor(x => x.Phone).MaximumLength(20);
-        RuleFor(x => x.FacebookName).MaximumLength(200);
+        RuleFor(x => x.ProvinceCode)
+            .Must(VietnamProvinces.IsValid)
+            .WithMessage("'{PropertyName}' is not a known province code.")
+            .When(x => !string.IsNullOrWhiteSpace(x.ProvinceCode));
         RuleFor(x => x.FacebookProfileUrl)
             .MaximumLength(500)
             .Must(u => Uri.TryCreate(u!.Trim(), UriKind.Absolute, out var uri)
@@ -48,6 +52,24 @@ internal sealed class CustomerAdminRequestValidator : AbstractValidator<Customer
             .WithMessage("'{PropertyName}' must be an http or https URL.")
             .When(x => !string.IsNullOrWhiteSpace(x.FacebookProfileUrl));
         RuleFor(x => x.Note).MaximumLength(2000);
+    }
+}
+
+internal sealed class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequest>
+{
+    public UpdateProfileRequestValidator()
+    {
+        RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Phone)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .Must(p => ProfilePhone.TryNormalize(p, out _))
+            .WithMessage("'{PropertyName}' must be 9 to 15 digits, with an optional leading +.");
+        RuleFor(x => x.ProvinceCode)
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .Must(VietnamProvinces.IsValid)
+            .WithMessage("'{PropertyName}' is not a known province code.");
     }
 }
 

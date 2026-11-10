@@ -7,6 +7,7 @@ using ChefLan.Logic.Customers.Contracts;
 using ChefLan.Logic.Customers.Errors;
 using ChefLan.Logic.Customers.Interfaces;
 using ChefLan.Logic.Customers.Mapping;
+using ChefLan.Logic.Customers.Validators;
 
 namespace ChefLan.Logic.Customers.Services;
 
@@ -238,6 +239,33 @@ internal sealed class CustomerAuthService(
         }
 
         return customer.IsActive ? customer.ToResponse() : CustomerErrors.AccountInactive;
+    }
+
+    public async Task<Result<CustomerResponse>> UpdateProfileAsync(
+        long customerId,
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await customers.GetByIdAsync(customerId, cancellationToken);
+
+        if (customer is null)
+        {
+            return CustomerErrors.NotFound(customerId);
+        }
+
+        if (!customer.IsActive)
+        {
+            return CustomerErrors.AccountInactive;
+        }
+
+        ProfilePhone.TryNormalize(request.Phone, out var phone);
+        customer.FullName = request.FullName.Trim();
+        customer.Phone = phone;
+        customer.ProvinceCode = request.ProvinceCode;
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return customer.ToResponse();
     }
 
     private CustomerAuthResponse IssuePair(Customer customer, ClientInfo client, DateTime now, out string tokenHash)

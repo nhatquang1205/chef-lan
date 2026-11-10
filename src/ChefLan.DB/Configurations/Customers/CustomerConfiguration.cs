@@ -50,7 +50,9 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasMaxLength(20)
             .HasComment("E.164, e.g. +8490...");
 
-        builder.Property(c => c.FacebookName).HasMaxLength(200);
+        builder.Property(c => c.ProvinceCode)
+            .HasMaxLength(50)
+            .HasComment("Province slug, e.g. ha-noi. The list of 34 is fixed in code, so there is no table or FK.");
 
         builder.Property(c => c.FacebookProfileUrl).HasMaxLength(500);
 

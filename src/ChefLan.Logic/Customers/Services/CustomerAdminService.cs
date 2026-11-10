@@ -70,7 +70,7 @@ internal sealed class CustomerAdminService(
             FullName = request.FullName.Trim(),
             Email = email,
             Phone = Clean(request.Phone),
-            FacebookName = Clean(request.FacebookName),
+            ProvinceCode = Clean(request.ProvinceCode),
             FacebookProfileUrl = Clean(request.FacebookProfileUrl),
             Note = Clean(request.Note),
             CreatedByStaffId = staffId,
@@ -128,7 +128,7 @@ internal sealed class CustomerAdminService(
 
         customer.FullName = request.FullName.Trim();
         customer.Phone = Clean(request.Phone);
-        customer.FacebookName = Clean(request.FacebookName);
+        customer.ProvinceCode = Clean(request.ProvinceCode);
         customer.FacebookProfileUrl = Clean(request.FacebookProfileUrl);
         customer.Note = Clean(request.Note);
 

@@ -1355,11 +1355,6 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("timestamptz")
                         .HasColumnName("email_confirmed_at");
 
-                    b.Property<string>("FacebookName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("facebook_name");
-
                     b.Property<string>("FacebookProfileUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -1424,6 +1419,12 @@ namespace ChefLan.DB.Migrations.Courses
                         .HasColumnType("character varying(20)")
                         .HasColumnName("phone")
                         .HasComment("E.164, e.g. +8490...");
+
+                    b.Property<string>("ProvinceCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("province_code")
+                        .HasComment("Province slug, e.g. ha-noi. The list of 34 is fixed in code, so there is no table or FK.");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamptz")
