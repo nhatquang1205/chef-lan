@@ -1,6 +1,6 @@
 namespace ChefLan.Logic.Courses.Interfaces;
 
-public sealed record CustomerRef(long Id, string? Email, string FullName, bool IsActive);
+public sealed record CustomerRef(long Id, string? Email, string FullName, bool IsActive, string? Phone = null, string? ProvinceCode = null);
 
 /// <summary>
 /// The Courses domain's own view of "who is this customer", so granting access never reaches into the

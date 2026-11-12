@@ -1,0 +1,2 @@
+# Install with: crontab -e (the VPS clock is Asia/Ho_Chi_Minh)
+0 3 * * * /home/nina/chef-lan-backup/backup-db.sh >> /home/nina/chef-lan-backup/backup.log 2>&1

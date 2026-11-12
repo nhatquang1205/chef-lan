@@ -62,6 +62,9 @@ Web__PublicBaseUrl=https://courses.bonbocon.com
 # The website and the admin call this API from the browser (cross-origin): both origins are required.
 Cors__AllowedOrigins__0=https://courses.bonbocon.com
 Cors__AllowedOrigins__1=https://admin.bonbocon.com
+# A Discord message for each new contact order (same webhook URL as ~/chef-lan-monitoring/.env). Empty = only logged.
+Notifications__Discord__WebhookUrl=<discord webhook url>
+Notifications__Discord__AdminBaseUrl=https://admin.bonbocon.com
 
 # FIRST DEPLOY ONLY - remove these three lines afterwards, then redeploy:
 Seed__RunOnStartup=true
@@ -93,7 +96,77 @@ big video cannot be uploaded through the admin. Upload it in the Bunny dashboard
 video's `externalId`. The old DuckDNS hosts are switched off (their site files removed from `sites-enabled`).
 
 The website and admin blocks are in their own repos (`chef-lan-web/deploy/nginx.conf`, `chef-lan-admin/deploy/nginx.conf`).
+Every bonbocon.com server block starts with `include snippets/cloudflare-only.conf;` (see "Cloudflare-only origin" below):
+a new block must too.
 **SePay's IPN URL** (SePay dashboard) is `https://api.bonbocon.com/api/v1/payments/sepay/ipn`.
+
+### Cloudflare-only origin
+
+The bonbocon.com hosts answer only requests that come through Cloudflare, and a request to the bare IP or an unknown host gets
+no answer (`444`). wish-list (`ninawishes.duckdns.org`, not behind Cloudflare) is untouched. Design:
+`docs/deploy-api/plans/09-cloudflare-only-origin.md`. Files:
+
+- `cloudflare-only.conf` -> `/etc/nginx/conf.d/`: sets `$from_cloudflare` from `$realip_remote_addr`, the real TCP peer.
+  (`allow`/`deny` would not work: `cloudflare-realip.conf` has already turned `$remote_addr` into the visitor's address.)
+- `snippets/cloudflare-only.conf` -> `/etc/nginx/snippets/`: `return 444` unless `$from_cloudflare`. Included at the top of
+  every bonbocon server block, port 80 and 443.
+- `default-deny` -> `sites-available` + `sites-enabled`: the default server. nginx 1.18 has no `ssl_reject_handshake`, so it
+  needs a self-signed certificate.
+- Cloudflare's ranges are in **two files** (`cloudflare-realip.conf` and `cloudflare-only.conf`): keep them identical.
+
+From your machine:
+
+```bash
+scp deploy/nginx/cloudflare-only.conf deploy/nginx/default-deny nina:nginx-bonbocon/
+scp deploy/nginx/snippets/cloudflare-only.conf nina:nginx-bonbocon/cloudflare-only.snippet
+```
+
+On the VPS (`sed` edits the files in `sites-available`, never the symlinks in `sites-enabled`, and leaves a `.bak-cfonly` copy
+next to each; nginx does not load `sites-available`):
+
+```bash
+cd ~/nginx-bonbocon
+sudo mkdir -p /etc/nginx/ssl
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=invalid -keyout /etc/nginx/ssl/default-deny.key -out /etc/nginx/ssl/default-deny.crt
+sudo chmod 600 /etc/nginx/ssl/default-deny.key
+sudo cp cloudflare-only.conf /etc/nginx/conf.d/cloudflare-only.conf
+sudo cp cloudflare-only.snippet /etc/nginx/snippets/cloudflare-only.conf
+sudo cp default-deny /etc/nginx/sites-available/default-deny
+sudo ln -s /etc/nginx/sites-available/default-deny /etc/nginx/sites-enabled/default-deny
+cd /etc/nginx/sites-available
+for f in admin.bonbocon.com api.bonbocon.com bonbocon-root courses.bonbocon.com monitor.bonbocon.com; do sudo sed -i.bak-cfonly '/^server {$/a\    include snippets/cloudflare-only.conf;' "$f"; done
+grep -c 'include snippets/cloudflare-only.conf' admin.bonbocon.com api.bonbocon.com bonbocon-root courses.bonbocon.com monitor.bonbocon.com   # 2 each
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Check:
+
+```bash
+curl -sI https://courses.bonbocon.com/ | head -1                                          # 200, through Cloudflare
+curl -sk --resolve courses.bonbocon.com:443:127.0.0.1 https://courses.bonbocon.com/ ; echo $?   # 52: empty reply (direct hit)
+curl -sk https://171.244.60.174/ ; echo $?                                                  # 52
+curl -sI https://ninawishes.duckdns.org/ | head -1                                         # wish-list still answers
+sudo certbot renew --dry-run                                                                # every name still renews
+```
+
+Roll back: in `/etc/nginx/sites-available`, `for f in admin.bonbocon.com api.bonbocon.com bonbocon-root courses.bonbocon.com monitor.bonbocon.com; do sudo mv "$f.bak-cfonly" "$f"; done`, `sudo rm /etc/nginx/sites-enabled/default-deny`, `sudo nginx -t &&
+sudo systemctl reload nginx`.
+
+**ufw.** Only 22, 80 and 443 are public today (every Docker port is bound to `127.0.0.1`, which is what protects them: Docker's
+rules bypass ufw). Keep the current SSH session open until a new one connects:
+
+```bash
+sudo ufw status verbose            # see what is there first
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
+Then, from a second terminal, `ssh nina` must still work, and the sites, Dozzle and Netdata too. Undo: `sudo ufw disable`.
 
 ### 4. GitHub
 
@@ -159,7 +232,65 @@ upload answers 503. Everything else keeps working.
 | Logs | Dozzle (see Monitoring), or `docker compose -f ~/chef-lan/docker-compose.prod.yml logs -f api` |
 | Roll back | `cd ~/chef-lan && IMAGE_TAG=$(cat .last-good-tag) bash deploy-api.sh` (database changes are forward-only: keep migrations backwards-compatible for one release) |
 | Old images | every successful deploy removes API images except the new one and the previous one |
-| Backup | none yet - set up a nightly `docker exec postgres pg_dump -U cheflan cheflan` before real customers arrive |
+| Backup | nightly 03:00, encrypted `pg_dump` of `cheflan` to a private B2 bucket, a Discord line each morning (see Backup) |
+
+## Backup
+
+`deploy/backup/backup-db.sh` runs from the deploy user's crontab every night at 03:00 (VPS clock `Asia/Ho_Chi_Minh`): `pg_dump -Fc`
+of the `cheflan` database only (not wish-list) from the shared `postgres` container, checked with `pg_restore --list`, encrypted with
+gpg (AES256), uploaded to a private Backblaze B2 bucket with rclone in Docker (pinned image, nothing to install). Discord gets one
+line on success (`Backup cheflan OK: 2.1 MB, 14 bản trên B2`) and one on failure (step and last error line): **no line by the
+morning means the job did not run**. Design: `docs/deploy-api/plans/08-database-backup.md`.
+
+### Setup
+
+1. B2: create a **private** bucket just for backups (not the public image bucket). Lifecycle rule: hide files after 14 days, delete
+   1 day after hiding. That is what enforces retention, so the VPS key needs no delete right.
+2. B2: create an application key restricted to that bucket. The script only needs to list and write files; give it the narrowest
+   capabilities B2 offers (`listBuckets`, `listFiles`, `readFiles`, `writeFiles`, no `deleteFiles`). B2's "Read and Write" preset
+   includes delete, so use custom capabilities if the dashboard offers them. Uploading a new, uniquely named file should not need
+   `deleteFiles`; this is not tested against B2 (see the plan's notes), so if the first run fails with an authorization error,
+   add the missing capability and keep the lifecycle rule anyway.
+3. Generate the passphrase and put it in the password manager **before anything else**: `openssl rand -base64 32`. Lose it and
+   every backup is unreadable.
+4. Copy the folder and fill in the secrets:
+
+```bash
+ssh nina 'mkdir -p ~/chef-lan-backup'
+scp deploy/backup/backup-db.sh deploy/backup/.env.example deploy/backup/crontab.txt nina:chef-lan-backup/
+ssh nina
+cd ~/chef-lan-backup
+chmod 700 backup-db.sh
+cp .env.example .env && chmod 600 .env && nano .env      # webhook URL, passphrase, B2 key, bucket
+./backup-db.sh                                           # run once by hand: expect a green line in Discord
+crontab -e                                               # paste the line from crontab.txt
+```
+
+`flock` and `gpg` come with Ubuntu. `jq` is not needed (the Discord JSON is escaped in bash). The log is
+`~/chef-lan-backup/backup.log`; the script keeps its last 1000 lines. To check the schedule: `crontab -l`.
+
+### Restore
+
+Never restore straight over production: restore into a scratch database, look at it, then decide.
+
+```bash
+# 1. download the newest file (B2 web UI, or rclone from any machine that has the B2 key) into one folder, then:
+gpg --output cheflan.dump --decrypt cheflan-YYYYMMDD-HHMMSS.dump.gpg      # asks for the passphrase
+# 2. restore into a scratch database on the shared Postgres
+docker exec postgres createdb -U cheflan cheflan_restore
+docker exec -i postgres pg_restore -U cheflan -d cheflan_restore --no-owner < cheflan.dump
+docker exec postgres psql -U cheflan -d cheflan_restore -c 'select count(*) from customers.customers'
+# 3. when done: docker exec postgres dropdb -U cheflan cheflan_restore ; rm cheflan.dump
+```
+
+`docker exec postgres env | grep POSTGRES_USER` shows the superuser if it is not `cheflan`. A restore has not been rehearsed yet:
+do it once on a scratch database before relying on it.
+
+### Good to know
+
+- A second run while one is still going is refused (a lock file) and reported to Discord as a failure.
+- Changing the passphrase later does not touch old files: keep the old one until those files age out of the bucket.
+- Only the database is backed up: not the VPS `.env` files, nor B2 or Bunny content.
 
 ## Monitoring
 
@@ -202,6 +333,20 @@ Notifications -> Test.
 Edit the files in the repo, copy them again (`scp` as above; `cp notifications.yml dozzle-data/` and
 `docker compose restart dozzle` if the alert changed), then `docker compose up -d`. To move to a new image version, change
 the tag in `monitoring/docker-compose.yml`.
+
+### Uptime check
+
+`.github/workflows/uptime.yml` runs every 5 minutes (GitHub may start it 5 to 15 minutes late) from outside the VPS and checks
+`courses.bonbocon.com/`, `admin.bonbocon.com/` (must contain `<div id="root">`) and `api.bonbocon.com/api/v1/health` (`/health`
+is not public). A site counts as down after 3 failed tries 20 s apart. It posts to Discord only when a site goes down and when it
+is back (with the downtime). Design: `docs/monitoring/plans/03-uptime-check.md`.
+
+- One-time setup: repo Settings -> Secrets and variables -> Actions -> new repository secret `DISCORD_WEBHOOK_URL` (the same
+  webhook as Dozzle), then Actions -> Uptime -> Run workflow once.
+- The job succeeds even while a site is down; the up/down state lives in the `uptime-state` artifact (2 days).
+- **GitHub disables scheduled workflows after 60 days without commits to the repo**: if the checks stop, Actions -> Uptime ->
+  Enable workflow.
+- Locally: `DRY_RUN=1 STATE_FILE=/tmp/uptime.json .github/scripts/uptime-check.sh` prints the message instead of posting.
 
 ### Good to know
 

@@ -6,6 +6,8 @@
 # The website and the admin call this host from the browser (CORS: Cors__AllowedOrigins in the API's .env).
 
 server {
+    # Answer only requests that come through Cloudflare (chef-lan deploy/nginx/snippets/cloudflare-only.conf).
+    include snippets/cloudflare-only.conf;
     listen 80;
     listen [::]:80;
     server_name api.bonbocon.com;

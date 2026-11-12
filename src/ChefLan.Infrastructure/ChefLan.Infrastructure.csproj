@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ChefLan.Logic.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Email templates and the logo travel inside the assembly, so the container needs no extra files. -->
     <EmbeddedResource Include="Services/Email/Templates/*" LogicalName="ChefLan.EmailTemplates.%(Filename)%(Extension)" />
   </ItemGroup>

@@ -6,6 +6,8 @@
 #   sudo certbot --nginx -d monitor.bonbocon.com      (while the DNS record is still DNS only)
 
 server {
+    # Answer only requests that come through Cloudflare (chef-lan deploy/nginx/snippets/cloudflare-only.conf).
+    include snippets/cloudflare-only.conf;
     listen 80;
     listen [::]:80;
     server_name monitor.bonbocon.com;

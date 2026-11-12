@@ -264,6 +264,8 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+# ...but not the database backup scripts.
+!deploy/backup/
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/

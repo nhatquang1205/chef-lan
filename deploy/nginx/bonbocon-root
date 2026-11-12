@@ -8,6 +8,8 @@
 # hosts. That 443 block must ALSO just `return 301 https://courses.bonbocon.com$request_uri;`
 # (no root, no proxy): edit it if certbot copied anything else into it.
 server {
+    # Answer only requests that come through Cloudflare (chef-lan deploy/nginx/snippets/cloudflare-only.conf).
+    include snippets/cloudflare-only.conf;
     listen 80;
     listen [::]:80;
     server_name bonbocon.com www.bonbocon.com;

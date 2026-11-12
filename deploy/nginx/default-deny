@@ -1,0 +1,21 @@
+# /etc/nginx/sites-available/default-deny (then ln -s into sites-enabled, nginx -t, reload)
+#
+# Catch-all for requests to the bare IP or to a host name nginx does not serve. Without it nginx answers them with the
+# first site it loaded (admin.bonbocon.com), which lets anyone reach a bonbocon site without going through Cloudflare.
+# 444 closes the connection without a response.
+#
+# nginx 1.18 has no ssl_reject_handshake, so the TLS listener needs a certificate: a self-signed one for CN "invalid",
+# never used for a real host (see deploy/README.md, "Cloudflare-only origin").
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate /etc/nginx/ssl/default-deny.crt;
+    ssl_certificate_key /etc/nginx/ssl/default-deny.key;
+
+    return 444;
+}

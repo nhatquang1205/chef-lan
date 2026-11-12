@@ -100,6 +100,7 @@ and refund the money by hand); invoices (hóa đơn điện tử).
 | B3 | chef-lan | [Orders created by staff](plans/03-staff-orders.md) | done |
 | B4 | chef-lan | [Switch bank transfer off](plans/04-bank-transfer-switch.md) | done |
 | B5 | chef-lan | [Free courses granted on order](plans/05-free-courses.md) | done |
+| B6 | chef-lan | [Discord message for a new contact order](plans/06-contact-order-discord.md) | done (needs the webhook in the VPS `.env`) |
 | A2 | chef-lan-admin | `docs/plans/20-create-order.md` | done |
 | A3 | chef-lan-admin | `docs/plans/21-free-orders.md` | done |
 | W | chef-lan-web | `docs/plans/` checkout page + buy button | see that repo |

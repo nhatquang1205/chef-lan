@@ -6,6 +6,7 @@ using ChefLan.Infrastructure.Repositories.Identity;
 using ChefLan.Infrastructure.Seed;
 using ChefLan.Infrastructure.Services.Email;
 using ChefLan.Infrastructure.Services.Images;
+using ChefLan.Infrastructure.Services.Notifications;
 using ChefLan.Infrastructure.Services.Payments;
 using ChefLan.Infrastructure.Services.Storage;
 using ChefLan.Infrastructure.Services.Video;
@@ -116,6 +117,18 @@ public static class InfrastructureServiceCollectionExtensions
         else
         {
             services.AddScoped<IEmailSender, LoggingEmailSender>();
+        }
+
+        // Staff are told about contact orders in Discord once a webhook is configured; otherwise it is only logged.
+        services.Configure<DiscordOptions>(configuration.GetSection(DiscordOptions.SectionName));
+
+        if (!string.IsNullOrWhiteSpace(configuration[$"{DiscordOptions.SectionName}:WebhookUrl"]))
+        {
+            services.AddHttpClient<IOrderNotifier, DiscordOrderNotifier>(client => client.Timeout = TimeSpan.FromSeconds(3));
+        }
+        else
+        {
+            services.AddScoped<IOrderNotifier, LoggingOrderNotifier>();
         }
 
         // Image storage is Backblaze B2 (S3-compatible, like wish-list); Bunny is video only. Both answer

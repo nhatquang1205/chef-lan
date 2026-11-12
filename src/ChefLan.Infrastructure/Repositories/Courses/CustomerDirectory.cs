@@ -14,6 +14,6 @@ internal sealed class CustomerDirectory(CoursesDbContext context) : ICustomerDir
         context.Customers
             .AsNoTracking()
             .Where(c => customerId != null ? c.Id == customerId : c.Email != null && c.Email == email)
-            .Select(c => new CustomerRef(c.Id, c.Email, c.FullName, c.IsActive))
+            .Select(c => new CustomerRef(c.Id, c.Email, c.FullName, c.IsActive, c.Phone, c.ProvinceCode))
             .FirstOrDefaultAsync(cancellationToken);
 }

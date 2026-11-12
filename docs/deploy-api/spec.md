@@ -15,6 +15,8 @@ Postgres container that is already running, behind the nginx that already termin
 | 5 | [CI/CD](plans/05-ci-cd.md) | GitHub Actions: checks, then deploy on push to `main` | **done** (workflow written; first run pending) |
 | 6 | [Web repo switch-over](plans/06-web-switch-over.md) | chef-lan-web points at the live API | todo |
 | 7 | [bonbocon.com domains](plans/07-bonbocon-domains.md) | courses / admin / api hosts, CORS, redirects from DuckDNS | todo |
+| 8 | [Database backup](plans/08-database-backup.md) | nightly encrypted `pg_dump` of `cheflan` to a private B2 bucket, Discord on success and failure | built; VPS + B2 setup pending |
+| 9 | [Cloudflare-only origin](plans/09-cloudflare-only-origin.md) | bonbocon hosts answer only Cloudflare, default server 444, ufw | files tested in nginx 1.18; VPS sudo steps pending |
 
 ## Target shape
 
@@ -89,8 +91,8 @@ free -h && df -h /                                                  # RAM and di
 
 ## Open items
 
-2. Database backups for the shared Postgres: out of scope here, but today there is none for
-   chef-lan's data. Worth a nightly `pg_dump` before real customers arrive.
+2. ~~Database backups~~: nightly encrypted dump of `cheflan` to B2, see [plan 8](plans/08-database-backup.md) and
+   `deploy/README.md` "Backup". Still to do: the first run on the VPS and one rehearsed restore.
 3. Make the GHCR package public after the first push (repo is public; the image has no secrets), so
    the VPS needs no registry login.
 

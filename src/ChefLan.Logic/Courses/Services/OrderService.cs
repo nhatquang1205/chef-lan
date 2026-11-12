@@ -1,3 +1,4 @@
+using ChefLan.Commons.Geography;
 using ChefLan.Commons.Money;
 using ChefLan.Commons.Pagination;
 using ChefLan.Commons.Results;
@@ -5,12 +6,14 @@ using ChefLan.Commons.Time;
 using ChefLan.Domain.Courses.Entities;
 using ChefLan.Domain.Enums;
 using ChefLan.Logic.Abstractions;
+using ChefLan.Logic.Courses.Contracts;
 using ChefLan.Logic.Courses.Contracts.Requests;
 using ChefLan.Logic.Courses.Contracts.Responses;
 using ChefLan.Logic.Courses.Errors;
 using ChefLan.Logic.Courses.Interfaces;
 using ChefLan.Logic.Courses.Mapping;
 using ChefLan.Logic.Courses.Payments;
+using Microsoft.Extensions.Logging;
 
 namespace ChefLan.Logic.Courses.Services;
 
@@ -26,7 +29,9 @@ internal sealed class OrderService(
     IPaymentSettings settings,
     OrderFulfilment fulfilment,
     IUnitOfWork unitOfWork,
-    IClock clock) : IOrderService
+    IClock clock,
+    IOrderNotifier notifier,
+    ILogger<OrderService> logger) : IOrderService
 {
     private const int MaxCodeAttempts = 5;
     private const int MyOrdersLimit = 50;
@@ -88,6 +93,11 @@ internal sealed class OrderService(
                     existing.PaymentMethod = request.Method;
                     existing.ExpiresAt = now + LifetimeOf(request.Method);
                     await unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    if (request.Method == OrderPaymentMethod.ContactChef)
+                    {
+                        await NotifyContactOrderAsync(existing, item.Value, customer, cancellationToken);
+                    }
                 }
 
                 return existing.ToResponse(settings, now);
@@ -110,7 +120,43 @@ internal sealed class OrderService(
         orders.Add(order);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (order.PaymentMethod == OrderPaymentMethod.ContactChef)
+        {
+            await NotifyContactOrderAsync(order, item.Value, customer, cancellationToken);
+        }
+
         return order.ToResponse(settings, now);
+    }
+
+    private async Task NotifyContactOrderAsync(Order order, OrderItem item, CustomerRef customer, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var isLesson = item.Kind == OrderItemKind.Lesson;
+            var courseTitle = isLesson && item.CourseSlug is not null
+                ? (await courses.GetPublishedIdBySlugAsync(item.CourseSlug, cancellationToken)) is { } id
+                    ? (await courses.GetByIdAsync(id, cancellationToken))?.Title
+                    : null
+                : null;
+
+            await notifier.ContactOrderCreatedAsync(
+                new ContactOrderNotice(
+                    order.Code,
+                    customer.FullName,
+                    customer.Email,
+                    customer.Phone,
+                    VietnamProvinces.All.FirstOrDefault(p => p.Code == customer.ProvinceCode)?.Name,
+                    isLesson ? courseTitle : item.Title,
+                    isLesson ? item.Title : null,
+                    order.AmountVnd,
+                    order.ExpiresAt),
+                // The order is already saved: a customer closing the tab must not cancel the announcement.
+                CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not announce contact order {OrderCode}.", order.Code);
+        }
     }
 
     private async Task<Result<OrderResponse>> CreateFreeAsync(

@@ -2,12 +2,14 @@ using System.Reflection;
 using ChefLan.Commons.Results;
 using ChefLan.Domain.Courses.Entities;
 using ChefLan.Domain.Enums;
+using ChefLan.Logic.Courses.Contracts;
 using ChefLan.Logic.Courses.Contracts.Requests;
 using ChefLan.Logic.Courses.Contracts.Responses;
 using ChefLan.Logic.Courses.Errors;
 using ChefLan.Logic.Courses.Interfaces;
 using ChefLan.Logic.Courses.Payments;
 using ChefLan.Logic.Courses.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ChefLan.Logic.Tests;
 
@@ -203,6 +205,75 @@ public class OrderServiceTests
         Assert.Single(world.Orders);
     }
 
+    [Fact]
+    public async Task A_new_contact_order_notifies_once_with_the_details()
+    {
+        var world = new FakeWorld();
+        var harness = new OrderHarness(world);
+
+        var result = await harness.Service.CreateAsync(CustomerId, Contact);
+
+        var notice = Assert.Single(harness.Notifier.Notices);
+        Assert.Equal(result.Value.Code, notice.OrderCode);
+        Assert.Equal("An", notice.CustomerName);
+        Assert.Equal("a@b.c", notice.CustomerEmail);
+        Assert.Equal("0901234567", notice.CustomerPhone);
+        Assert.Equal("Macaron", notice.CourseTitle);
+        Assert.Null(notice.LessonTitle);
+        Assert.Equal(result.Value.AmountVnd, notice.AmountVnd);
+        Assert.Equal(result.Value.ExpiresAt, notice.HeldUntilUtc);
+    }
+
+    [Fact]
+    public async Task Switching_a_waiting_transfer_order_to_contact_notifies()
+    {
+        var world = new FakeWorld();
+        var harness = new OrderHarness(world);
+
+        await harness.Service.CreateAsync(CustomerId, Transfer);
+        Assert.Empty(harness.Notifier.Notices);
+
+        await harness.Service.CreateAsync(CustomerId, Contact);
+
+        Assert.Single(harness.Notifier.Notices);
+    }
+
+    [Fact]
+    public async Task Asking_for_the_same_contact_order_again_does_not_notify()
+    {
+        var world = new FakeWorld();
+        var harness = new OrderHarness(world);
+
+        await harness.Service.CreateAsync(CustomerId, Contact);
+        await harness.Service.CreateAsync(CustomerId, Contact);
+
+        Assert.Single(harness.Notifier.Notices);
+    }
+
+    [Fact]
+    public async Task A_transfer_order_and_a_free_course_do_not_notify()
+    {
+        var paid = new OrderHarness(new FakeWorld());
+        await paid.Service.CreateAsync(CustomerId, Transfer);
+
+        var free = new OrderHarness(new FakeWorld { CoursePrice = 0, QuotePrice = 0 });
+        await free.Service.CreateAsync(CustomerId, Contact);
+
+        Assert.Empty(paid.Notifier.Notices);
+        Assert.Empty(free.Notifier.Notices);
+    }
+
+    [Fact]
+    public async Task A_notifier_that_throws_does_not_change_the_result()
+    {
+        var world = new FakeWorld();
+
+        var result = await new OrderHarness(world, notifierThrows: true).Service.CreateAsync(CustomerId, Contact);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(world.Orders);
+    }
+
     private static OrderItem Item(long courseId, decimal list, decimal unit) => new()
     {
         Kind = OrderItemKind.Course,
@@ -233,8 +304,9 @@ public class OrderServiceTests
 
 internal sealed class OrderHarness
 {
-    public OrderHarness(FakeWorld world)
+    public OrderHarness(FakeWorld world, bool notifierThrows = false)
     {
+        Notifier = new RecordingNotifier(notifierThrows);
         var clock = new FakeClock(world);
         var unitOfWork = new FakeUnitOfWork(world);
         var enrollmentService = new FakeEnrollmentService(world);
@@ -252,7 +324,7 @@ internal sealed class OrderHarness
 
         var customers = Stub.Of<ICustomerDirectory>(new()
         {
-            [nameof(ICustomerDirectory.FindAsync)] = _ => Task.FromResult<CustomerRef?>(new CustomerRef(5, "a@b.c", "An", true)),
+            [nameof(ICustomerDirectory.FindAsync)] = _ => Task.FromResult<CustomerRef?>(new CustomerRef(5, "a@b.c", "An", true, "0901234567", "ha-noi")),
         });
 
         Service = new OrderService(
@@ -267,10 +339,14 @@ internal sealed class OrderHarness
             world.Settings,
             new OrderFulfilment(enrollmentService, unitOfWork, clock),
             unitOfWork,
-            clock);
+            clock,
+            Notifier,
+            NullLogger<OrderService>.Instance);
     }
 
     public OrderService Service { get; }
+
+    public RecordingNotifier Notifier { get; }
 }
 
 /// <summary>An interface stand-in that answers only the methods it was given and throws on any other call.</summary>
@@ -291,4 +367,21 @@ internal class Stub : DispatchProxy
         _handlers.TryGetValue(targetMethod!.Name, out var handler)
             ? handler(args ?? [])
             : throw new NotSupportedException(targetMethod.Name);
+}
+
+internal sealed class RecordingNotifier(bool throws) : IOrderNotifier
+{
+    public List<ContactOrderNotice> Notices { get; } = [];
+
+    public Task ContactOrderCreatedAsync(ContactOrderNotice notice, CancellationToken cancellationToken = default)
+    {
+        if (throws)
+        {
+            throw new InvalidOperationException("Discord is down.");
+        }
+
+        Notices.Add(notice);
+
+        return Task.CompletedTask;
+    }
 }

@@ -325,6 +325,8 @@ and deploys. Design: `docs/deploy-api/`. Things that bite:
 - Migrations are applied by the deploy from the generated idempotent SQL, as the app's own database
   role, before the new container starts. Keep migrations backwards-compatible for one release:
   rollback re-deploys the previous image against the newer schema.
+- **Origin answers only Cloudflare:** every bonbocon server block starts with `include snippets/cloudflare-only.conf;` (`return 444` unless `$from_cloudflare`, a `geo` on `$realip_remote_addr`, never `allow`/`deny`: the real-IP module has rewritten `$remote_addr`); `default-deny` is the default server; ufw allows 22/80/443. wish-list (DuckDNS, not proxied) shares this nginx and must not include the snippet. Cloudflare's ranges live in two files (`cloudflare-realip.conf`, `cloudflare-only.conf`): keep them identical. Plan `docs/deploy-api/plans/09-cloudflare-only-origin.md`.
+- **Backup:** `deploy/backup/backup-db.sh` (cron 03:00 in `~/chef-lan-backup`): `pg_dump` of `cheflan` only, gpg-encrypted, to a private B2 bucket (retention = B2 lifecycle rule, the key has no delete), a Discord line on success and on failure. Restore steps in `deploy/README.md`.
 - CORS must list both front ends in production (`Cors__AllowedOrigins__0=https://courses.bonbocon.com`, `__1=https://admin.bonbocon.com`);
   only Development allows `http://localhost:3000`. `Web__PublicBaseUrl=https://courses.bonbocon.com`.
 
@@ -346,6 +348,7 @@ staff link), and it grants through `GrantCourseAsync`/`GrantLessonAsync` in the 
   discount for it; free if it is selected too or already owned) and the split of staff's price edits and order discount. A multi-item order
   records each enrollment's `AmountPaidVnd` from its item's `UnitPriceVnd`; staff-created grants use source `AdminGrant`.
 - **Free courses:** a course whose list price is 0 (not one discounted to 0) is granted when the order is created: `OrderService.CreateAsync` adds it and calls `MarkPaidAsync(OrderPaidVia.Free)` inside `InTransactionAsync`, no staff, no transaction, `amount_vnd = 0` (`ck_orders_amount_non_negative`). Staff orders still need a total > 0; lessons priced 0 are still not for sale. Plan `docs/payments/plans/05-free-courses.md`.
+- **Contact-order alert:** a new contact order (or a waiting order switched to `ContactChef`) posts to Discord through `IOrderNotifier` (`DiscordOrderNotifier`; `LoggingOrderNotifier` when `Notifications:Discord:WebhookUrl` is empty). Best effort: failures are Warnings (an Error would be re-posted to the same webhook by Dozzle) and never change the order result. Plan `docs/payments/plans/06-contact-order-discord.md`.
 - **Two different secrets:** `Payment:SePay:SecretKey` (merchant Secret Key, signs the form) and `Payment:SePay:IpnSecret` (IPN tab, checked on the
   notification). Mixing them up makes SePay reject the form or us reject SePay. Neither is ever sent to the browser.
 - **`SePayIpnParser` and `PaymentInstructions.Sign` are the only places that know SePay's field names and signing rule** (pinned by a test with a signature
@@ -422,6 +425,7 @@ Spec: `docs/monitoring/`; setup: `deploy/README.md`, "Monitoring". `deploy/monit
 (`cheflan-monitoring`, in `~/chef-lan-monitoring` on the VPS) so `deploy-api.sh`'s `--remove-orphans` never deletes it. Dozzle
 watches `cheflan-api` and posts `Error`/`Fatal` entries (except EF Core and the request logger, which repeat the exception handler) to a Discord webhook; Netdata shows the host and nginx status classes.
 Both bind `127.0.0.1` only; `https://monitor.bonbocon.com` (nginx basic auth, Netdata `/system/`, Dozzle `/logs/` with `DOZZLE_BASE=/logs`) or an SSH tunnel. The webhook URL is a credential in the VPS `.env` only: this repo is public.
+An outside uptime check (`.github/workflows/uptime.yml`, every 5 min, state in an artifact) posts to the same Discord channel when a host goes down and when it is back; it probes `/api/v1/health` because `/health` is not public.
 The API logs through Serilog, so JSON output is set by `Serilog__WriteTo__0__Args__formatter` in `docker-compose.prod.yml`
 (`Logging__Console__*` has no effect); the alert reads Serilog's compact fields (`@l`, `@m`, `@x`).
 
