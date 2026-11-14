@@ -49,4 +49,5 @@ are measured again.
   back; commit then reverse commit restored all 11 course thumbnails.
 - 2026-11-15, after the user's Cloudflare steps: `img.bonbocon.com` answers 200 `image/webp`, first request `MISS`, then `HIT`
   (edge SIN); `/file/other-bucket/x` is 404. Panettone's 6 images through the CDN: MISS 1.5–3.1 s each, HIT 0.3–0.7 s each
-  (straight from B2 before: 2.5–6 s). Stored URL rewrite on production: pending (the user runs the SQL).
+  (straight from B2 before: 2.5–6 s). Stored URL rewrite run on production by the user the same day; every public course page, category and shared module now
+  carries `img.bonbocon.com` URLs and no `backblazeb2.com` link.
