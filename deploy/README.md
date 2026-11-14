@@ -191,6 +191,8 @@ Two services, split by what they are good at (the same split as wish-list for im
    the **keyID** and the **applicationKey** once: `Storage__B2__KeyId` and `Storage__B2__AppKey`.
 3. Images are served from `https://<bucket>.s3.<region>.backblazeb2.com/images/...` unless you set
    `Storage__B2__PublicBaseUrl` (a custom domain or CDN in front of the bucket, no trailing slash).
+   Production uses `https://img.bonbocon.com` (Cloudflare in front of the bucket); setup and the one-time URL rewrite
+   (`deploy/sql/rewrite-image-base-url.sql`) are in `docs/deploy-api/plans/10-image-cdn.md`.
 4. Bucket settings -> Lifecycle: **keep only the last version** of a file. Deleting a thumbnail on a
    versioned bucket only hides it; without that rule B2 keeps (and bills) the hidden copy.
 5. Images are small, so uploads go through the API (nginx allows 6 MB on the API host).

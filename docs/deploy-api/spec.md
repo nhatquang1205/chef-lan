@@ -17,6 +17,7 @@ Postgres container that is already running, behind the nginx that already termin
 | 7 | [bonbocon.com domains](plans/07-bonbocon-domains.md) | courses / admin / api hosts, CORS, redirects from DuckDNS | todo |
 | 8 | [Database backup](plans/08-database-backup.md) | nightly encrypted `pg_dump` of `cheflan` to a private B2 bucket, Discord on success and failure | built; VPS + B2 setup pending |
 | 9 | [Cloudflare-only origin](plans/09-cloudflare-only-origin.md) | bonbocon hosts answer only Cloudflare, default server 444, ufw | files tested in nginx 1.18; VPS sudo steps pending |
+| 10 | [Image CDN](plans/10-image-cdn.md) | images through Cloudflare at `img.bonbocon.com`, stored URLs rewritten by SQL | SQL tested locally; Cloudflare + VPS steps pending |
 
 ## Target shape
 
