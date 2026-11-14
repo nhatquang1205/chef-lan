@@ -24,8 +24,8 @@ Vietnam on 2026-11-15 (Panettone's 6 gallery images): 1–3.5 s before the first
 3. Check (Claude can do this part): `curl -sI https://img.bonbocon.com/images/2026/11/9a3e5e8fc041474f9b3365ffb9540fc0.webp`
    is `200`, `content-type: image/webp`; a second request shows `cf-cache-status: HIT`; `https://img.bonbocon.com/file/other-bucket/x`
    is a 404 from our bucket, not another bucket's file.
-4. VPS `~/chef-lan/.env`: add `Storage__B2__PublicBaseUrl=https://img.bonbocon.com`, then `docker compose ... up -d` (or the
-   next deploy). Upload one image in the admin: the returned URL starts with `https://img.bonbocon.com/`.
+4. VPS `~/chef-lan/.env`: add `Storage__B2__PublicBaseUrl=https://img.bonbocon.com`, then
+   `cd ~/chef-lan && IMAGE_TAG=$(cat .last-good-tag) docker compose -f docker-compose.prod.yml up -d` (or the next deploy). Upload one image in the admin: the returned URL starts with `https://img.bonbocon.com/`.
 5. Copy `deploy/sql/rewrite-image-base-url.sql` to the VPS and run it once as a dry run (prints the changed columns and row
    counts, rolls back), then with `-v commit=1`:
    ```
