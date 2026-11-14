@@ -47,3 +47,6 @@ are measured again.
   base tables in `courses` and `customers`, `replace()` only where the old base occurs, a NOTICE per changed column, rolls back
   unless `-v commit=1`. Tested on the local DB with `picsum.photos` as the old base: dry run changed 2 columns (12 rows) and rolled
   back; commit then reverse commit restored all 11 course thumbnails.
+- 2026-11-15, after the user's Cloudflare steps: `img.bonbocon.com` answers 200 `image/webp`, first request `MISS`, then `HIT`
+  (edge SIN); `/file/other-bucket/x` is 404. Panettone's 6 images through the CDN: MISS 1.5–3.1 s each, HIT 0.3–0.7 s each
+  (straight from B2 before: 2.5–6 s). Stored URL rewrite on production: pending (the user runs the SQL).
